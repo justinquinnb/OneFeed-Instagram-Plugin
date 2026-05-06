@@ -1,14 +1,14 @@
 package dev.jqb.onefeed.instagram_plugin;
 
+import dev.jqb.onefeed.api.content.ContentPackage;
+import dev.jqb.onefeed.api.feed.Platform;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
-import dev.jqb.onefeed.api.model.data.ContentPackage;
-import dev.jqb.onefeed.api.model.data.Platform;
-import dev.jqb.onefeed.api.model.data.ProviderResponse;
-import dev.jqb.onefeed.api.model.pipeline.AutoProvider;
-import dev.jqb.onefeed.api.model.pipeline.Normalizer;
+import dev.jqb.onefeed.api.pipeline.AutoProvider;
+import dev.jqb.onefeed.api.pipeline.ContentFilter;
+import dev.jqb.onefeed.api.pipeline.Normalizer;
+import dev.jqb.onefeed.api.pipeline.ProviderResponse;
 import java.util.HashMap;
 import java.util.List;
-import org.pf4j.Plugin;
 import reactor.core.publisher.Mono;
 
 /**
@@ -16,9 +16,23 @@ import reactor.core.publisher.Mono;
  */
 public class InstagramProvider implements AutoProvider<InstagramContent> {
 
+    /**
+     * The handler used to actually make the API requests
+     */
+    private final RequestHandler requestHandler;
+
+    /**
+     * Constructs a new {@code InstagramProvider}
+     * @param requestHandler the handler used to actually make the API requests
+     */
+    public InstagramProvider(RequestHandler requestHandler) {
+        this.requestHandler = requestHandler;
+    }
+
     @Override
-    public Mono<ProviderResponse<InstagramContent>> getContent(String author, int amount, List list, HashMap config) {
-        return null;
+    public Mono<ProviderResponse<InstagramContent>> fetchRecentContent(String feedName, int amount,
+        List<ContentFilter<?>> filters, HashMap<String, String> config) {
+        return requestHandler.fetchRecentContent(feedName, amount, filters, config);
     }
 
     @Override

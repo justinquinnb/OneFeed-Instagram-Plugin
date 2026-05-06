@@ -1,7 +1,8 @@
 package dev.jqb.onefeed.instagram_plugin;
 
-import dev.jqb.onefeed.api.model.data.RawContent;
-import dev.jqb.onefeed.api.model.data.SourceInfo;
+import dev.jqb.onefeed.api.content.RawContent;
+import dev.jqb.onefeed.api.feed.Profile;
+import dev.jqb.onefeed.api.feed.SourceInfo;
 import java.time.Instant;
 
 /**
@@ -9,7 +10,7 @@ import java.time.Instant;
  */
 public class InstagramContent extends RawContent {
     private Instant published;
-    private SourceInfo source;
+    private SourceInfo<Profile> source;
 
     @Override
     public Instant getPublished() {
@@ -17,7 +18,7 @@ public class InstagramContent extends RawContent {
     }
 
     @Override
-    public SourceInfo getSource() {
+    public SourceInfo<Profile> getSource() {
         return source;
     }
 }

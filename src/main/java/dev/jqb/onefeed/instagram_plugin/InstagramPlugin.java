@@ -1,30 +1,69 @@
 package dev.jqb.onefeed.instagram_plugin;
 
-import java.util.ArrayList;
+import dev.jqb.onefeed.api.pipeline.ScheduledTasks;
+import dev.jqb.onefeed.api.plugin.FixedDelayTask;
+import dev.jqb.onefeed.api.plugin.OneFeedProviderPlugin;
+import dev.jqb.onefeed.api.plugin.ProviderEnv;
+import dev.jqb.onefeed.api.plugin.ScheduledTask;
+import dev.jqb.onefeed.instagram_plugin.config.FeedEnv;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
-import org.pf4j.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InstagramPlugin extends Plugin {
+/**
+ * A OneFeed plugin that provides Instagram feed content
+ */
+public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledTasks
+{
     private static final Logger logger = LoggerFactory.getLogger(InstagramPlugin.class);
-    private static final RequestHandler requestHandler = new RequestHandler();
+
+    private InstagramProvider provider;
+    private HashMap<String, FeedEnv> feedEnvs;
+
+    /**
+     * Constructs a new {@code InstagramPlugin} within a provided {@code ProviderEnv}
+     * @param providerEnv the {@code InstagramPlugin}-specific environment variables containing API
+     *                  keys, etc.
+     */
+    public InstagramPlugin(ProviderEnv providerEnv) {
+        super(providerEnv);
+        this.feedEnvs = parseFeedEnvs(providerEnv);
+    }
 
     @Override
     public void start() {
-        logger.info("Instagram plugin started!");
+        RequestHandler requestHandler = RequestHandler.using(feedEnvs);
+        this.provider = new InstagramProvider(requestHandler);
+        logger.info("Instagram plugin started");
     }
 
-    private List<String> getApiKeys(String envLocation) {
-
-        return new ArrayList<>();
+    @Override
+    public List<ScheduledTask> getScheduledTasks() {
+        return List.of(new FixedDelayTask(() -> logger.info("TASK!!!"), "Test task", Duration.ofSeconds(5)));
     }
 
-    private String getPluginEnvPrefix() {
-        // Probably a better way to do this...
-        // plugin.properties would be great if it wasn't for the fact that multiple plugins
-        // would be trying to read from the same one in a plugins folder, requiring UIDs which
-        // this is supposed to be
-        return "INSTAGRAM_";
+    @Override
+    public InstagramProvider getProvider() {
+        return provider;
+    }
+
+    /**
+     * Parses the environment variables for each feed into a {@code HashMap} of feed names to
+     * {@code FeedEnv} objects.
+     *
+     * @param providerEnv the environment variables the plugin is running with
+     *
+     * @return the parsed environment variables for each feed
+     */
+    private static HashMap<String, FeedEnv> parseFeedEnvs(ProviderEnv providerEnv) {
+        logger.debug("Parsing feed variables...");
+        HashMap<String, FeedEnv> feedEnvs = new HashMap<>();
+
+        providerEnv.getFeeds().forEach((feedName, rawFeedEnvData) -> {
+            feedEnvs.put(feedName, new FeedEnv(rawFeedEnvData));
+        });
+        return feedEnvs;
     }
 }

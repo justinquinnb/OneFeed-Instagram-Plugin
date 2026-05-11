@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagram_plugin.config;
+package dev.jqb.onefeed.instagramplugin.config;
 
 import java.util.HashMap;
 import lombok.Getter;
@@ -22,6 +22,17 @@ public class FeedEnv {
     private AccessToken accessToken;
 
     /**
+     * The app ID of your Facebook Login for Business app. Sometimes called client ID by Meta's
+     * docs
+     */
+    private String appId;
+
+    /**
+     * The app secret of your Meta app. Sometimes called app ID by Meta's docs.
+     */
+    private String appSecret;
+
+    /**
      * Constructs a new {@code FeedEnv} object from the untyped, raw env feed data provided by
      * OneFeed.
      *
@@ -31,5 +42,7 @@ public class FeedEnv {
     public FeedEnv(HashMap<String, Object> rawFeedEnvData) {
         this.loginType = LoginType.valueOf(((String) rawFeedEnvData.get("loginType")).toUpperCase());
         this.accessToken = new AccessToken((HashMap<String, String>)rawFeedEnvData.get("accessToken"));
+        this.appId = (String) rawFeedEnvData.get("appId");
+        this.appSecret = (String) rawFeedEnvData.get("appSecret");
     }
 }

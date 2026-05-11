@@ -1,12 +1,13 @@
-package dev.jqb.onefeed.instagram_plugin;
+package dev.jqb.onefeed.instagramplugin;
 
+import dev.jqb.onefeed.api.content.ContentFilter;
 import dev.jqb.onefeed.api.content.ContentPackage;
+import dev.jqb.onefeed.api.content.Normalizer;
+import dev.jqb.onefeed.api.feed.AutoProvider;
+import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Platform;
+import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
-import dev.jqb.onefeed.api.pipeline.AutoProvider;
-import dev.jqb.onefeed.api.pipeline.ContentFilter;
-import dev.jqb.onefeed.api.pipeline.Normalizer;
-import dev.jqb.onefeed.api.pipeline.ProviderResponse;
 import java.util.HashMap;
 import java.util.List;
 import reactor.core.publisher.Mono;
@@ -30,7 +31,7 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Mono<ProviderResponse<InstagramContent>> fetchRecentContent(String feedName, int amount,
+    public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
         List<ContentFilter<?>> filters, HashMap<String, String> config) {
         return requestHandler.fetchRecentContent(feedName, amount, filters, config);
     }
@@ -46,12 +47,12 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public String getWebhookSlug() {
-        return "/instagram";
+    public Mono<Profile> getProfile(String feedName) {
+        return null;
     }
 
     @Override
-    public ContentPackage<InstagramContent> getUpdatedContent(String notifPayload) {
+    public ContentPackage<InstagramContent> handleWebhookNotif(String notifPayload) {
         return null;
     }
 }

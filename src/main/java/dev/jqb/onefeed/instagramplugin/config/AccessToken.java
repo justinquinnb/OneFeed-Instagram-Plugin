@@ -1,18 +1,20 @@
-package dev.jqb.onefeed.instagram_plugin.config;
+package dev.jqb.onefeed.instagramplugin.config;
 
 import java.util.HashMap;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
- * A meta API access token
+ * A Meta API access token
  */
 @Getter
+@Setter
 public class AccessToken {
 
     /**
      * The access token for the targeted profile
      */
-    private final String value;
+    private String value;
 
     /**
      * Whether the access token is long-lived

@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagram_plugin.config;
+package dev.jqb.onefeed.instagramplugin.config;
 
 /**
  * The type of login used when giving your Meta application access to your Instagram account.

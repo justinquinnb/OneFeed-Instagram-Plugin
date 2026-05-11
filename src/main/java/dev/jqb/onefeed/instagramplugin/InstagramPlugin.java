@@ -1,11 +1,11 @@
-package dev.jqb.onefeed.instagram_plugin;
+package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.api.pipeline.ScheduledTasks;
+import dev.jqb.onefeed.api.feed.OneFeedProviderPlugin;
+import dev.jqb.onefeed.api.feed.ProviderEnv;
 import dev.jqb.onefeed.api.plugin.FixedDelayTask;
-import dev.jqb.onefeed.api.plugin.OneFeedProviderPlugin;
-import dev.jqb.onefeed.api.plugin.ProviderEnv;
 import dev.jqb.onefeed.api.plugin.ScheduledTask;
-import dev.jqb.onefeed.instagram_plugin.config.FeedEnv;
+import dev.jqb.onefeed.api.plugin.ScheduledTasks;
+import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +21,7 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
 
     private InstagramProvider provider;
     private HashMap<String, FeedEnv> feedEnvs;
+    private RequestHandler requestHandler;
 
     /**
      * Constructs a new {@code InstagramPlugin} within a provided {@code ProviderEnv}
@@ -34,19 +35,25 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
 
     @Override
     public void start() {
-        RequestHandler requestHandler = RequestHandler.using(feedEnvs);
+        this.requestHandler = RequestHandler.using(feedEnvs);
         this.provider = new InstagramProvider(requestHandler);
         logger.info("Instagram plugin started");
     }
 
     @Override
     public List<ScheduledTask> getScheduledTasks() {
-        return List.of(new FixedDelayTask(() -> logger.info("TASK!!!"), "Test task", Duration.ofSeconds(5)));
+        return List.of(new FixedDelayTask(requestHandler::refreshAllAccessTokens,
+            "Refresh access tokens", Duration.ofDays(59)));
     }
 
     @Override
     public InstagramProvider getProvider() {
         return provider;
+    }
+
+    @Override
+    public List<Class<?>> getClassesToDeserialize() {
+        return List.of(InstagramContent.class);
     }
 
     /**
@@ -58,7 +65,7 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
      * @return the parsed environment variables for each feed
      */
     private static HashMap<String, FeedEnv> parseFeedEnvs(ProviderEnv providerEnv) {
-        logger.debug("Parsing feed variables...");
+        logger.trace("Parsing feed variables...");
         HashMap<String, FeedEnv> feedEnvs = new HashMap<>();
 
         providerEnv.getFeeds().forEach((feedName, rawFeedEnvData) -> {

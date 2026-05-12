@@ -24,6 +24,7 @@ import tools.jackson.databind.ObjectMapper;
  */
 public class RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
+    private HashMap<String, String> userIds = new HashMap<>();
 
     /**
      * The plugin's environment variables
@@ -58,11 +59,15 @@ public class RequestHandler {
             FeedEnv feedEnv = feedEnvs.get(feedName);
             AccessToken accessTokenInfo = feedEnv.getAccessToken();
 
+            // Get the access tokens ready
             if (!accessTokenInfo.isLongLived() && accessTokenInfo.isExchangeForLongLived()) {
                 exchangeAccessToken(feedEnv);
             } else if (accessTokenInfo.isLongLived() && accessTokenInfo.isAutoRefresh()){
                 refreshAccessToken(feedEnv);
             }
+
+            // Now that the access token's ready, resolve the user ID for each feed
+            userIds.put(feedName, resolveUserId(feedEnv));
         }
     }
 
@@ -90,6 +95,7 @@ public class RequestHandler {
 
     /**
      * Exchanges the access token for a long-lived one.
+     * Intentionally synchronous as it's critical initialization.
      *
      * @param feedEnv the feed environment to whose access token to exchange for a long-lived one
      */
@@ -144,6 +150,8 @@ public class RequestHandler {
 
     /**
      * Refreshes the provided access token.
+     * Intentionally synchronous as it either occurs during critical initialization or in
+     * a scheduled, OneFeed thread pool managed task.
      *
      * @param feedEnv the feed environment whose access token to refresh
      */
@@ -169,7 +177,7 @@ public class RequestHandler {
         } else {
             String baseUrl = "https://graph.instagram.com/refresh_access_token";
             String uriString = String.format("%s?grant_type=ig_refresh_token&access_token=%s",
-                baseUrl, clientSecret, accessTokenStr);
+                baseUrl, accessTokenStr);
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         }
@@ -200,7 +208,8 @@ public class RequestHandler {
     }
 
     /**
-     * Refreshes the access tokens of all feeds that indicated they should be auto-refreshed
+     * Refreshes the access tokens of all feeds that indicated they should be auto-refreshed.
+     * Intentionally synchronous as it's executed by the OneFeed thread pool handler.
      */
     public void refreshAllAccessTokens() {
         for (String feedName : feedEnvs.keySet()) {
@@ -217,6 +226,8 @@ public class RequestHandler {
      * @param feedEnv the feed environment whose user ID to resolve
      */
     private String resolveUserId(FeedEnv feedEnv) {
+
+
         return null;
     }
 }

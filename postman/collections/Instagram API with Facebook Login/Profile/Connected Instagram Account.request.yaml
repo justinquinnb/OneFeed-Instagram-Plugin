@@ -5,4 +5,22 @@ method: GET
 queryParams:
   access_token: "{{fb_access_token}}"
   fields: instagram_business_account
+scripts:
+  - type: afterResponse
+    code: "// Parse the JSON response\r
+
+      const responseData = pm.response.json();\r
+
+      \r
+
+      // Extract the business account ID\r
+
+      const fbIgUserId = responseData.data[0].instagram_business_account.id;\r
+
+      \r
+
+      // Save it as a collection variable\r
+
+      pm.collectionVariables.set(\"fb_ig_user_id\", fbIgUserId);"
+    language: text/javascript
 order: 1905023233638758

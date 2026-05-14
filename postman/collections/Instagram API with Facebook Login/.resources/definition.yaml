@@ -1,2 +1,4 @@
 $kind: collection
 name: Instagram API with Facebook Login
+variables:
+  fb_ig_user_id: ""

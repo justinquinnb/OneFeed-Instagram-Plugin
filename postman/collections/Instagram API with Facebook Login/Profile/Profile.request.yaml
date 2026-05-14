@@ -3,11 +3,8 @@ name: Profile
 url: https://graph.facebook.com/:insta_user_id?access_token={{fb_access_token}}&fields=id,name,username,profile_picture_url
 method: GET
 queryParams:
-  - key: access_token
-    value: "{{fb_access_token}}"
-  - key: fields
-    value: id,name,username,profile_picture_url
+  access_token: "{{fb_access_token}}"
+  fields: id,name,username,profile_picture_url
 pathVariables:
-  - key: insta_user_id
-    value: ""
+  insta_user_id: "{{fb_ig_user_id}}"
 order: 3591582942527631

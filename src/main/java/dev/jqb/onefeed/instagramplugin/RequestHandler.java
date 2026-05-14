@@ -2,6 +2,7 @@ package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.ContentFilter;
 import dev.jqb.onefeed.api.feed.FilteredContent;
+import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
@@ -14,17 +15,34 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 
 /**
  * Handles all requests to the Instagram API
  */
 public class RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
-    private HashMap<String, String> userIds = new HashMap<>();
+
+    /**
+     * A mapping of feed names to Instagram User IDs.<br><br>
+     *
+     * Importantly, User IDs are Meta App-specific. That is, the User ID of a single account will
+     * differ depending on the Meta App associated with the access token used.
+     */
+    private ConcurrentHashMap<String, String> userIds = new ConcurrentHashMap<>();
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build();
+
+    private ObjectMapper mapper;
 
     /**
      * The plugin's environment variables
@@ -49,6 +67,9 @@ public class RequestHandler {
      */
     private RequestHandler(HashMap<String, FeedEnv> feedEnvs) {
         this.feedEnvs = feedEnvs;
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Profile.class, new ProfileDeserializer(Profile.class));
+        this.mapper = JsonMapper.builder().addModule(module).build();
     }
 
     /**
@@ -65,9 +86,6 @@ public class RequestHandler {
             } else if (accessTokenInfo.isLongLived() && accessTokenInfo.isAutoRefresh()){
                 refreshAccessToken(feedEnv);
             }
-
-            // Now that the access token's ready, resolve the user ID for each feed
-            userIds.put(feedName, resolveUserId(feedEnv));
         }
     }
 
@@ -94,6 +112,104 @@ public class RequestHandler {
     }
 
     /**
+     * Fetches the profile of the author responsible for the content in feed {@code feedName}.
+     *
+     * @param feedName the name of the feed whose corresponding profile to retrieve
+     * @return a {@link Mono} that emits the {@link Profile} of the author of the desired feed
+     */
+    public Mono<Profile> fetchProfile(String feedName) {
+        FeedEnv feedEnv = feedEnvs.get(feedName);
+
+        // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
+        // where both paths have the same args
+        Mono<String> userIdMono = (feedEnv.getLoginType() == LoginType.FACEBOOK)
+            ? getOrFetchInstaUserId(feedName)
+            : Mono.just("me");
+
+        return userIdMono
+            .flatMap(userId -> {
+                URI uri = URI.create(
+                    String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url",
+                        getBaseUrl(feedEnv.getLoginType()), userId,
+                        feedEnv.getAccessToken().getValue()
+                    )
+                );
+                HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
+
+                return Mono.fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()));
+            })
+            .map(response -> mapper.readValue(response.body(), Profile.class));
+    }
+
+    /**
+     * Provides the Instagram User ID for the provided {@code feedName}.
+     *
+     * @param feedName the name of the feed whose Instagram User ID to retrieve
+     *
+     * @return a {@link Mono} emitting the name of the Instagram User ID corresponding to the
+     * {@code feedName}, sourced either from the cache {@link #userIds} or from the API itself
+     */
+    public Mono<String> getOrFetchInstaUserId(String feedName) {
+        FeedEnv feedEnv = feedEnvs.get(feedName);
+
+        // Just provide the ID from the hashmap if we already have it
+        if (userIds.containsKey(feedName)) {
+            return Mono.just(userIds.get(feedName));
+        }
+
+        // Otherwise go get it for the first time
+        if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
+            return fetchInstaIdFromFbLogin(feedName);
+        }
+
+        return fetchInstaIdFromInstaLogin(feedName);
+    }
+
+    /**
+     * Fetches the Instagram User ID for the provided feed using the Instagram login approach.
+     *
+     * @param feedName the name of the feed whose Instagram User ID to retrieve
+     * @return a {@link Mono} emitting the name of the Instagram User ID corresponding to the
+     * {@code feedName}
+     */
+    private Mono<String> fetchInstaIdFromInstaLogin(String feedName) {
+        FeedEnv feedEnv = feedEnvs.get(feedName);
+        URI uri = URI.create(String.format("%s/me?access_token=%s",
+            getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));
+        HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+
+        return Mono
+            .fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()))
+            .map(response -> {
+                JsonNode root = mapper.readTree(response.body());
+                return root.get("id").asString();
+            })
+            .doOnNext(id -> userIds.put(feedName, id));
+    }
+
+    /**
+     * Fetches the Instagram User ID for the provided feed using the Facebook login approach.
+     *
+     * @param feedName the name of the feed whose Instagram User ID to retrieve
+     * @return a mono emitting the name of the Instagram User ID corresponding to the
+     * {@code feedName}
+     */
+    private Mono<String> fetchInstaIdFromFbLogin(String feedName) {
+        FeedEnv feedEnv = feedEnvs.get(feedName);
+        URI uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
+            getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));
+        HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+
+        return Mono
+            .fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()))
+            .map(response -> {
+                JsonNode root = mapper.readTree(response.body());
+                return root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
+            })
+            .doOnNext(id -> userIds.put(feedName, id));
+    }
+
+    /**
      * Exchanges the access token for a long-lived one.
      * Intentionally synchronous as it's critical initialization.
      *
@@ -110,27 +226,25 @@ public class RequestHandler {
 
         // Hit the correct endpoint with the correct args
         if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
-            String baseUrl = "https://graph.facebook.com/oauth/access_token";
             String clientId = URLEncoder.encode(feedEnv.getAppId(), StandardCharsets.UTF_8);
 
-            String uriString = String.format("%s?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
-                baseUrl, clientId, clientSecret, accessTokenStr);
+            String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
+                getBaseUrl(feedEnv.getLoginType()), clientId, clientSecret, accessTokenStr);
 
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         } else {
-            String baseUrl = "https://graph.instagram.com/access_token";
-            String uriString = String.format("%s?grant_type=ig_exchange_token&client_secret=%s&access_token=%s",
-                baseUrl, clientSecret, accessTokenStr);
+            String uriString = String.format("%s/access_token?grant_type=ig_exchange_token&client_secret=%s&access_token=%s",
+                getBaseUrl(feedEnv.getLoginType()), clientSecret, accessTokenStr);
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         }
 
         requestBuilder.GET();
         HttpRequest request = requestBuilder.build();
-        String responseBody = "";
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+        String responseBody;
+        try {
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new Exception("Exchange response was not OK: " + response.body());
             }
@@ -140,10 +254,9 @@ public class RequestHandler {
             return;
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-        AccessTokenResponse accessTokenResponse = mapper.readValue(responseBody, AccessTokenResponse.class);
+        JsonNode root = mapper.readTree(responseBody);
+        accessToken.setValue(root.get("access_token").asString());
 
-        accessToken.setValue(accessTokenResponse.access_token);
         feedEnv.getAccessToken().setLongLived(true);
         logger.debug("Successfully exchanged access token for long-lived one");
     }
@@ -166,27 +279,25 @@ public class RequestHandler {
 
         // Hit the correct endpoint with the correct args
         if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
-            String baseUrl = "https://graph.facebook.com/oauth/access_token";
             String clientId = URLEncoder.encode(feedEnv.getAppId(), StandardCharsets.UTF_8);
 
-            String uriString = String.format("%s?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
-                baseUrl, clientId, clientSecret, accessTokenStr);
+            String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
+                getBaseUrl(feedEnv.getLoginType()), clientId, clientSecret, accessTokenStr);
 
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         } else {
-            String baseUrl = "https://graph.instagram.com/refresh_access_token";
-            String uriString = String.format("%s?grant_type=ig_refresh_token&access_token=%s",
-                baseUrl, accessTokenStr);
+            String uriString = String.format("%s/refresh_access_token?grant_type=ig_refresh_token&access_token=%s",
+                feedEnv.getLoginType(), accessTokenStr);
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         }
 
         requestBuilder.GET();
         HttpRequest request = requestBuilder.build();
-        String responseBody = "";
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+        String responseBody;
+        try {
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new Exception("Refresh response was not OK: " + response.body());
             }
@@ -198,10 +309,8 @@ public class RequestHandler {
 
         // The "refreshed" token is really just a new one, there's no true refresh unlike insta
         if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
-            ObjectMapper mapper = new ObjectMapper();
-            AccessTokenResponse accessTokenResponse = mapper.readValue(responseBody, AccessTokenResponse.class);
-
-            accessToken.setValue(accessTokenResponse.access_token);
+            JsonNode root = mapper.readTree(responseBody);
+            accessToken.setValue(root.get("access_token").asString());
         }
 
         logger.debug("Successfully refreshed access token");
@@ -221,13 +330,11 @@ public class RequestHandler {
     }
 
     /**
-     * Resolves the user IDs for all feeds, placing the results in the {@code feedEnvs} map.
-     *
-     * @param feedEnv the feed environment whose user ID to resolve
+     * Gets the base API URL for the platform depending on the {@code loginType}.
+     * @param loginType the type of login used for the Meta app
+     * @return the base API URL corresponding to the provided {@code loginType}
      */
-    private String resolveUserId(FeedEnv feedEnv) {
-
-
-        return null;
+    private String getBaseUrl(LoginType loginType) {
+        return (loginType == LoginType.FACEBOOK) ? "https://graph.facebook.com" : "https://graph.instagram.com";
     }
 }

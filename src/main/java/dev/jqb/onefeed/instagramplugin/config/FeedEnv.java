@@ -28,7 +28,7 @@ public class FeedEnv {
     private String appId;
 
     /**
-     * The app secret of your Meta app. Sometimes called app ID by Meta's docs.
+     * The app secret of your Meta app. Sometimes called app ID by Meta's docs
      */
     private String appSecret;
 
@@ -44,5 +44,21 @@ public class FeedEnv {
         this.accessToken = new AccessToken((HashMap<String, String>)rawFeedEnvData.get("accessToken"));
         this.appId = (String) rawFeedEnvData.get("appId");
         this.appSecret = (String) rawFeedEnvData.get("appSecret");
+    }
+
+    /**
+     * Constructs a new {@code FeedEnv} object from the given arguments.
+     *
+     * @param loginType the type of login required to access the feed's data
+     * @param accessToken the access token used to access the feed's data
+     * @param appId the app ID of your Facebook Login for Business app. Sometimes called client ID
+     *              by Meta's docs
+     * @param appSecret the app secret of your Meta app. Sometimes called app ID by Meta's docs
+     */
+    public FeedEnv(LoginType loginType, AccessToken accessToken, String appId, String appSecret) {
+        this.loginType = loginType;
+        this.accessToken = accessToken;
+        this.appId = appId;
+        this.appSecret = appSecret;
     }
 }

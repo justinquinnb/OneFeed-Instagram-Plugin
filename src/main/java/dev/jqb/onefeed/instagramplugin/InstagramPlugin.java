@@ -6,6 +6,7 @@ import dev.jqb.onefeed.api.plugin.FixedDelayTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTasks;
 import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
+import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,11 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
     public InstagramPlugin(ProviderEnv providerEnv) {
         super(providerEnv);
         this.feedEnvs = parseFeedEnvs(providerEnv);
+    }
+
+    public InstagramPlugin(InstagramTestEnv providerEnv) {
+        super(providerEnv);
+        this.feedEnvs = providerEnv.getFeedEnvs();
     }
 
     @Override

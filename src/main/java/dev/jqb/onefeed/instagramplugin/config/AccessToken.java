@@ -53,4 +53,20 @@ public class AccessToken {
             .parseBoolean(rawAccessTokenData.get("exchangeForLongLived"));
         this.autoRefresh = Boolean.parseBoolean(rawAccessTokenData.get("autoRefresh"));
     }
+
+    /**
+     * Constructs a new {@code AccessToken} object from the given args.
+     *
+     * @param value the access token for the targeted profile
+     * @param isLongLived whether the access token is long-lived
+     * @param exchangeForLongLived whether the access token should be exchanged for a long-lived one
+     * @param autoRefresh whether the access token should be automatically refreshed
+     */
+    public AccessToken(String value, boolean isLongLived, boolean exchangeForLongLived,
+        boolean autoRefresh) {
+        this.value = value;
+        this.isLongLived = isLongLived;
+        this.exchangeForLongLived = exchangeForLongLived;
+        this.autoRefresh = autoRefresh;
+    }
 }

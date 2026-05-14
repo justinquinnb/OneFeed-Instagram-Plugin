@@ -173,6 +173,7 @@ public class RequestHandler {
      * {@code feedName}
      */
     private Mono<String> fetchInstaIdFromInstaLogin(String feedName) {
+        logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feedName);
         FeedEnv feedEnv = feedEnvs.get(feedName);
         URI uri = URI.create(String.format("%s/me?access_token=%s",
             getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));
@@ -195,6 +196,7 @@ public class RequestHandler {
      * {@code feedName}
      */
     private Mono<String> fetchInstaIdFromFbLogin(String feedName) {
+        logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feedName);
         FeedEnv feedEnv = feedEnvs.get(feedName);
         URI uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
             getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));

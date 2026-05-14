@@ -75,7 +75,7 @@ public class InstagramPluginTester {
                 assertNotNull(profile.getName());
                 assertFalse(profile.getName().isBlank());
 
-                log.info(profile.toString());
+                log.debug(profile.toString());
             })
             .verifyComplete();
     }

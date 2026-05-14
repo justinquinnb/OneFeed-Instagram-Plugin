@@ -1,0 +1,10 @@
+$kind: http-request
+name: Me
+url: https://graph.facebook.com/me?access_token={{fb_access_token}}&fields=id
+method: GET
+queryParams:
+  - key: access_token
+    value: "{{fb_access_token}}"
+  - key: fields
+    value: id
+order: 1778796589127

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Me
+url: https://graph.instagram.com/me?access_token={{ig_access_token}}
+method: GET
+queryParams:
+  access_token: "{{ig_access_token}}"
+order: 1778796936387

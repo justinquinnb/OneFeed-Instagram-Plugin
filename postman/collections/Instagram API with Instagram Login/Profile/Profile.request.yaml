@@ -1,0 +1,8 @@
+$kind: http-request
+name: Profile
+url: https://graph.instagram.com/me?access_token={{ig_access_token}}&fields=id,name,username,profile_picture_url
+method: GET
+queryParams:
+  access_token: "{{ig_access_token}}"
+  fields: id,name,username,profile_picture_url
+order: 632501152038996

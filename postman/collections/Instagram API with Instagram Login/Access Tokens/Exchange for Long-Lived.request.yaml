@@ -1,0 +1,9 @@
+$kind: http-request
+name: Exchange for Long-Lived
+url: https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret={{ig_app_secret}}&access_token={{ig_access_token}}
+method: GET
+queryParams:
+  grant_type: ig_exchange_token
+  client_secret: "{{ig_app_secret}}"
+  access_token: "{{ig_access_token}}"
+order: 1778796901093

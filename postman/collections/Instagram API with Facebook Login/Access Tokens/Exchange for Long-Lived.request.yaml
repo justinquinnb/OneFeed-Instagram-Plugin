@@ -1,0 +1,5 @@
+$kind: http-request
+name: Exchange for Long-Lived
+url: ""
+method: GET
+order: 1778796547390

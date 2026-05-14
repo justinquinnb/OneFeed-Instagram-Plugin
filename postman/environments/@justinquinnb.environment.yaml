@@ -1,0 +1,14 @@
+name: '@justinquinnb'
+values:
+  - key: fb_app_id
+    value: ''
+  - key: fb_app_secret
+    value: ''
+  - key: fb_access_token
+    value: ''
+  - key: ig_app_id
+    value: ''
+  - key: ig_app_secret
+    value: ''
+  - key: ig_access_token
+    value: ''

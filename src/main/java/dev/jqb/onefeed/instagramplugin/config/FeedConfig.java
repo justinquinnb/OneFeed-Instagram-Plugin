@@ -9,7 +9,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FeedEnv {
+public class FeedConfig {
 
     /**
      * The type of login required to access the feed's data
@@ -39,7 +39,7 @@ public class FeedEnv {
      * @param rawFeedEnvData the raw feed env data provided by OneFeed
      */
     @SuppressWarnings("unchecked")
-    public FeedEnv(HashMap<String, Object> rawFeedEnvData) {
+    public FeedConfig(HashMap<String, Object> rawFeedEnvData) {
         this.loginType = LoginType.valueOf(((String) rawFeedEnvData.get("loginType")).toUpperCase());
         this.accessToken = new AccessToken((HashMap<String, String>)rawFeedEnvData.get("accessToken"));
         this.appId = (String) rawFeedEnvData.get("appId");
@@ -55,7 +55,7 @@ public class FeedEnv {
      *              by Meta's docs
      * @param appSecret the app secret of your Meta app. Sometimes called app ID by Meta's docs
      */
-    public FeedEnv(LoginType loginType, AccessToken accessToken, String appId, String appSecret) {
+    public FeedConfig(LoginType loginType, AccessToken accessToken, String appId, String appSecret) {
         this.loginType = loginType;
         this.accessToken = accessToken;
         this.appId = appId;

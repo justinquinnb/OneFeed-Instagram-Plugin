@@ -4,7 +4,7 @@ import dev.jqb.onefeed.api.content.ContentFilter;
 import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
-import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
+import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -47,14 +47,14 @@ public class RequestHandler {
     /**
      * The plugin's environment variables
      */
-    private final HashMap<String, FeedEnv> feedEnvs;
+    private final HashMap<String, FeedConfig> feedEnvs;
 
     /**
      * Creates a new, initialized {@code RequestHandler} using the given {@code providerEnv}.
      * @param feedEnvs the environment variables for each feed
      * @return a new {@code RequestHandler} already initialized and ready for use
      */
-    public static RequestHandler using(HashMap<String, FeedEnv> feedEnvs) {
+    public static RequestHandler using(HashMap<String, FeedConfig> feedEnvs) {
         RequestHandler requestHandler = new RequestHandler(feedEnvs);
         requestHandler.init();
 
@@ -65,7 +65,7 @@ public class RequestHandler {
      * Constructs a new {@code RequestHandler}.
      * @param feedEnvs the environment variables for each feed
      */
-    private RequestHandler(HashMap<String, FeedEnv> feedEnvs) {
+    private RequestHandler(HashMap<String, FeedConfig> feedEnvs) {
         this.feedEnvs = feedEnvs;
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Profile.class, new ProfileDeserializer(Profile.class));
@@ -77,14 +77,14 @@ public class RequestHandler {
      */
     public void init() {
         for (String feedName : feedEnvs.keySet()) {
-            FeedEnv feedEnv = feedEnvs.get(feedName);
-            AccessToken accessTokenInfo = feedEnv.getAccessToken();
+            FeedConfig feedConfig = feedEnvs.get(feedName);
+            AccessToken accessTokenInfo = feedConfig.getAccessToken();
 
             // Get the access tokens ready
             if (!accessTokenInfo.isLongLived() && accessTokenInfo.isExchangeForLongLived()) {
-                exchangeAccessToken(feedEnv);
+                exchangeAccessToken(feedConfig);
             } else if (accessTokenInfo.isLongLived() && accessTokenInfo.isAutoRefresh()){
-                refreshAccessToken(feedEnv);
+                refreshAccessToken(feedConfig);
             }
         }
     }
@@ -118,11 +118,11 @@ public class RequestHandler {
      * @return a {@link Mono} that emits the {@link Profile} of the author of the desired feed
      */
     public Mono<Profile> fetchProfile(String feedName) {
-        FeedEnv feedEnv = feedEnvs.get(feedName);
+        FeedConfig feedConfig = feedEnvs.get(feedName);
 
         // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
         // where both paths have the same args
-        Mono<String> userIdMono = (feedEnv.getLoginType() == LoginType.FACEBOOK)
+        Mono<String> userIdMono = (feedConfig.getLoginType() == LoginType.FACEBOOK)
             ? getOrFetchInstaUserId(feedName)
             : Mono.just("me");
 
@@ -130,8 +130,8 @@ public class RequestHandler {
             .flatMap(userId -> {
                 URI uri = URI.create(
                     String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url",
-                        getBaseUrl(feedEnv.getLoginType()), userId,
-                        feedEnv.getAccessToken().getValue()
+                        getBaseUrl(feedConfig.getLoginType()), userId,
+                        feedConfig.getAccessToken().getValue()
                     )
                 );
                 HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
@@ -150,7 +150,7 @@ public class RequestHandler {
      * {@code feedName}, sourced either from the cache {@link #userIds} or from the API itself
      */
     public Mono<String> getOrFetchInstaUserId(String feedName) {
-        FeedEnv feedEnv = feedEnvs.get(feedName);
+        FeedConfig feedConfig = feedEnvs.get(feedName);
 
         // Just provide the ID from the hashmap if we already have it
         if (userIds.containsKey(feedName)) {
@@ -158,7 +158,7 @@ public class RequestHandler {
         }
 
         // Otherwise go get it for the first time
-        if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
+        if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
             return fetchInstaIdFromFbLogin(feedName);
         }
 
@@ -174,9 +174,9 @@ public class RequestHandler {
      */
     private Mono<String> fetchInstaIdFromInstaLogin(String feedName) {
         logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feedName);
-        FeedEnv feedEnv = feedEnvs.get(feedName);
+        FeedConfig feedConfig = feedEnvs.get(feedName);
         URI uri = URI.create(String.format("%s/me?access_token=%s",
-            getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));
+            getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
 
         return Mono
@@ -197,9 +197,9 @@ public class RequestHandler {
      */
     private Mono<String> fetchInstaIdFromFbLogin(String feedName) {
         logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feedName);
-        FeedEnv feedEnv = feedEnvs.get(feedName);
+        FeedConfig feedConfig = feedEnvs.get(feedName);
         URI uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
-            getBaseUrl(feedEnv.getLoginType()), feedEnv.getAccessToken().getValue()));
+            getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
 
         return Mono
@@ -215,29 +215,29 @@ public class RequestHandler {
      * Exchanges the access token for a long-lived one.
      * Intentionally synchronous as it's critical initialization.
      *
-     * @param feedEnv the feed environment to whose access token to exchange for a long-lived one
+     * @param feedConfig the feed environment to whose access token to exchange for a long-lived one
      */
-    private void exchangeAccessToken(FeedEnv feedEnv) {
+    private void exchangeAccessToken(FeedConfig feedConfig) {
         logger.debug("Attempting to exchange access token for long-lived one...");
-        AccessToken accessToken = feedEnv.getAccessToken();
+        AccessToken accessToken = feedConfig.getAccessToken();
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
-        String clientSecret = URLEncoder.encode(feedEnv.getAppSecret(), StandardCharsets.UTF_8);
-        String accessTokenStr = URLEncoder.encode(feedEnv.getAccessToken().getValue(),
+        String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
+        String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
 
         // Hit the correct endpoint with the correct args
-        if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
-            String clientId = URLEncoder.encode(feedEnv.getAppId(), StandardCharsets.UTF_8);
+        if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
+            String clientId = URLEncoder.encode(feedConfig.getAppId(), StandardCharsets.UTF_8);
 
             String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
-                getBaseUrl(feedEnv.getLoginType()), clientId, clientSecret, accessTokenStr);
+                getBaseUrl(feedConfig.getLoginType()), clientId, clientSecret, accessTokenStr);
 
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         } else {
             String uriString = String.format("%s/access_token?grant_type=ig_exchange_token&client_secret=%s&access_token=%s",
-                getBaseUrl(feedEnv.getLoginType()), clientSecret, accessTokenStr);
+                getBaseUrl(feedConfig.getLoginType()), clientSecret, accessTokenStr);
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         }
@@ -259,7 +259,7 @@ public class RequestHandler {
         JsonNode root = mapper.readTree(responseBody);
         accessToken.setValue(root.get("access_token").asString());
 
-        feedEnv.getAccessToken().setLongLived(true);
+        feedConfig.getAccessToken().setLongLived(true);
         logger.debug("Successfully exchanged access token for long-lived one");
     }
 
@@ -268,29 +268,29 @@ public class RequestHandler {
      * Intentionally synchronous as it either occurs during critical initialization or in
      * a scheduled, OneFeed thread pool managed task.
      *
-     * @param feedEnv the feed environment whose access token to refresh
+     * @param feedConfig the feed environment whose access token to refresh
      */
-    private void refreshAccessToken(FeedEnv feedEnv) {
+    private void refreshAccessToken(FeedConfig feedConfig) {
         logger.debug("Attempting to refresh access token...");
-        AccessToken accessToken = feedEnv.getAccessToken();
+        AccessToken accessToken = feedConfig.getAccessToken();
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
-        String clientSecret = URLEncoder.encode(feedEnv.getAppSecret(), StandardCharsets.UTF_8);
-        String accessTokenStr = URLEncoder.encode(feedEnv.getAccessToken().getValue(),
+        String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
+        String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
 
         // Hit the correct endpoint with the correct args
-        if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
-            String clientId = URLEncoder.encode(feedEnv.getAppId(), StandardCharsets.UTF_8);
+        if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
+            String clientId = URLEncoder.encode(feedConfig.getAppId(), StandardCharsets.UTF_8);
 
             String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
-                getBaseUrl(feedEnv.getLoginType()), clientId, clientSecret, accessTokenStr);
+                getBaseUrl(feedConfig.getLoginType()), clientId, clientSecret, accessTokenStr);
 
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         } else {
             String uriString = String.format("%s/refresh_access_token?grant_type=ig_refresh_token&access_token=%s",
-                feedEnv.getLoginType(), accessTokenStr);
+                feedConfig.getLoginType(), accessTokenStr);
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
         }
@@ -310,7 +310,7 @@ public class RequestHandler {
         }
 
         // The "refreshed" token is really just a new one, there's no true refresh unlike insta
-        if (feedEnv.getLoginType() == LoginType.FACEBOOK) {
+        if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
             JsonNode root = mapper.readTree(responseBody);
             accessToken.setValue(root.get("access_token").asString());
         }
@@ -324,9 +324,9 @@ public class RequestHandler {
      */
     public void refreshAllAccessTokens() {
         for (String feedName : feedEnvs.keySet()) {
-            FeedEnv feedEnv = feedEnvs.get(feedName);
-            if (feedEnv.getAccessToken().isAutoRefresh() && feedEnv.getAccessToken().isLongLived()) {
-                refreshAccessToken(feedEnv);
+            FeedConfig feedConfig = feedEnvs.get(feedName);
+            if (feedConfig.getAccessToken().isAutoRefresh() && feedConfig.getAccessToken().isLongLived()) {
+                refreshAccessToken(feedConfig);
             }
         }
     }

@@ -5,7 +5,7 @@ import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.api.feed.Provider;
 import dev.jqb.onefeed.instagramplugin.InstagramPlugin;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
-import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
+import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -31,7 +31,7 @@ public class InstagramPluginTester {
         Dotenv dotEnv = Dotenv.load();
 
         // Create the plugin env from it
-        HashMap<String, FeedEnv> feedEnvs = new HashMap<>();
+        HashMap<String, FeedConfig> feedEnvs = new HashMap<>();
 
         LoginType loginType = LoginType.valueOf(((String) dotEnv.get("LOGIN_TYPE")).toUpperCase());
         String accessTokenValue = dotEnv.get("ACCESS_TOKEN");
@@ -43,9 +43,9 @@ public class InstagramPluginTester {
         String appId = dotEnv.get("APP_ID");
         String appSecret = dotEnv.get("APP_SECRET");
 
-        FeedEnv feedEnv = new FeedEnv(loginType, accessToken, appId, appSecret);
+        FeedConfig feedConfig = new FeedConfig(loginType, accessToken, appId, appSecret);
         feedName = dotEnv.get("FEED_NAME");
-        feedEnvs.put(feedName, feedEnv);
+        feedEnvs.put(feedName, feedConfig);
 
         plugin = new InstagramPlugin(new InstagramTestEnv(null, feedEnvs));
         plugin.start();

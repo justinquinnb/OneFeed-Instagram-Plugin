@@ -1,11 +1,11 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.feed.OneFeedProviderPlugin;
-import dev.jqb.onefeed.api.feed.ProviderEnv;
+import dev.jqb.onefeed.api.feed.ProviderConfig;
 import dev.jqb.onefeed.api.plugin.FixedDelayTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTasks;
-import dev.jqb.onefeed.instagramplugin.config.FeedEnv;
+import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import java.time.Duration;
 import java.util.HashMap;
@@ -21,22 +21,22 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
     private static final Logger logger = LoggerFactory.getLogger(InstagramPlugin.class);
 
     private InstagramProvider provider;
-    private HashMap<String, FeedEnv> feedEnvs;
+    private HashMap<String, FeedConfig> feedEnvs;
     private RequestHandler requestHandler;
 
     /**
-     * Constructs a new {@code InstagramPlugin} within a provided {@code ProviderEnv}
-     * @param providerEnv the {@code InstagramPlugin}-specific environment variables containing API
+     * Constructs a new {@code InstagramPlugin} within a provided {@code ProviderConfig}
+     * @param providerConfig the {@code InstagramPlugin}-specific configuration containing API
      *                  keys, etc.
      */
-    public InstagramPlugin(ProviderEnv providerEnv) {
-        super(providerEnv);
-        this.feedEnvs = parseFeedEnvs(providerEnv);
+    public InstagramPlugin(ProviderConfig providerConfig) {
+        super(providerConfig);
+        this.feedEnvs = parseFeedEnvs(providerConfig);
     }
 
-    public InstagramPlugin(InstagramTestEnv providerEnv) {
-        super(providerEnv);
-        this.feedEnvs = providerEnv.getFeedEnvs();
+    public InstagramPlugin(InstagramTestEnv providerConfig) {
+        super(providerConfig);
+        this.feedEnvs = providerConfig.getFeedEnvs();
     }
 
     @Override
@@ -63,19 +63,19 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
     }
 
     /**
-     * Parses the environment variables for each feed into a {@code HashMap} of feed names to
+     * Parses the configuration for each feed into a {@code HashMap} of feed names to
      * {@code FeedEnv} objects.
      *
-     * @param providerEnv the environment variables the plugin is running with
+     * @param providerConfig the configuration the plugin is running with
      *
-     * @return the parsed environment variables for each feed
+     * @return the parsed configuration for each feed
      */
-    private static HashMap<String, FeedEnv> parseFeedEnvs(ProviderEnv providerEnv) {
+    private static HashMap<String, FeedConfig> parseFeedEnvs(ProviderConfig providerConfig) {
         logger.trace("Parsing feed variables...");
-        HashMap<String, FeedEnv> feedEnvs = new HashMap<>();
+        HashMap<String, FeedConfig> feedEnvs = new HashMap<>();
 
-        providerEnv.getFeeds().forEach((feedName, rawFeedEnvData) -> {
-            feedEnvs.put(feedName, new FeedEnv(rawFeedEnvData));
+        providerConfig.getFeeds().forEach((feedName, rawFeedEnvData) -> {
+            feedEnvs.put(feedName, new FeedConfig(rawFeedEnvData));
         });
         return feedEnvs;
     }

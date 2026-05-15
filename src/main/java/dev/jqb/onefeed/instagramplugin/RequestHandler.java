@@ -136,7 +136,7 @@ public class RequestHandler {
                 );
                 HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
 
-                return Mono.fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()));
+                return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()));
             })
             .map(response -> mapper.readValue(response.body(), Profile.class));
     }
@@ -180,7 +180,7 @@ public class RequestHandler {
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
 
         return Mono
-            .fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()))
+            .fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {
                 JsonNode root = mapper.readTree(response.body());
                 return root.get("id").asString();
@@ -203,7 +203,7 @@ public class RequestHandler {
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
 
         return Mono
-            .fromFuture(httpClient.sendAsync(request, BodyHandlers.ofString()))
+            .fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {
                 JsonNode root = mapper.readTree(response.body());
                 return root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();

@@ -62,6 +62,11 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
         return List.of(InstagramContent.class);
     }
 
+    @Override
+    public List<String> getFeedNames() {
+        return List.of(feedEnvs.keySet().toArray(new String[0]));
+    }
+
     /**
      * Parses the configuration for each feed into a {@code HashMap} of feed names to
      * {@code FeedEnv} objects.

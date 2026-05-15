@@ -8,6 +8,7 @@ import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
+import dev.jqb.onefeed.plugintestkit.ProviderPluginTests;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
@@ -19,14 +20,9 @@ import reactor.test.StepVerifier;
 /**
  * A test class for the provider
  */
-@Slf4j
-public class InstagramPluginTester {
-    private static InstagramPlugin plugin;
-    private static Provider provider;
-    private static String feedName;
-
-    @BeforeAll
-    public static void createPlugin() {
+public class InstagramPluginTester extends ProviderPluginTests<InstagramPlugin> {
+    @Override
+    protected InstagramPlugin getInitializedPlugin() {
         // Read the .env
         Dotenv dotEnv = Dotenv.load();
 
@@ -44,39 +40,12 @@ public class InstagramPluginTester {
         String appSecret = dotEnv.get("APP_SECRET");
 
         FeedConfig feedConfig = new FeedConfig(loginType, accessToken, appId, appSecret);
-        feedName = dotEnv.get("FEED_NAME");
+        String feedName = dotEnv.get("FEED_NAME");
         feedEnvs.put(feedName, feedConfig);
 
-        plugin = new InstagramPlugin(new InstagramTestEnv(null, feedEnvs));
-        plugin.start();
-        provider = plugin.getProvider();
-    }
+        InstagramPlugin instance = new InstagramPlugin(new InstagramTestEnv(null, feedEnvs));
+        instance.start();
 
-    @Test
-    public void getProfile() {
-        Mono<Profile> mono = provider.getProfile(feedName);
-
-        StepVerifier.create(mono)
-            .assertNext(profile -> {
-                assertNotNull(profile);
-
-                assertNotNull(profile.getProfilePicSrc());
-                assertFalse(profile.getProfilePicSrc().isBlank());
-
-                assertNotNull(profile.getFeedUrl());
-                assertFalse(profile.getFeedUrl().isBlank());
-
-                assertNotNull(profile.getHandle());
-                assertFalse(profile.getHandle().isBlank());
-
-                assertNotNull(profile.getId());
-                assertFalse(profile.getId().isBlank());
-
-                assertNotNull(profile.getName());
-                assertFalse(profile.getName().isBlank());
-
-                log.debug(profile.toString());
-            })
-            .verifyComplete();
+        return instance;
     }
 }

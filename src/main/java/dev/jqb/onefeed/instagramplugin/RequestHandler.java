@@ -29,6 +29,7 @@ import tools.jackson.databind.module.SimpleModule;
  */
 public class RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
+    private static final String API_VERSION = "v25.0";
 
     /**
      * A mapping of feed names to Instagram User IDs.<br><br>
@@ -337,6 +338,6 @@ public class RequestHandler {
      * @return the base API URL corresponding to the provided {@code loginType}
      */
     private String getBaseUrl(LoginType loginType) {
-        return (loginType == LoginType.FACEBOOK) ? "https://graph.facebook.com" : "https://graph.instagram.com";
+        return ((loginType == LoginType.FACEBOOK) ? "https://graph.facebook.com/" : "https://graph.instagram.com/") + API_VERSION;
     }
 }

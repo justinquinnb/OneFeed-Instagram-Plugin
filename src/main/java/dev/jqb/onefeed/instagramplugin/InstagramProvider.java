@@ -37,6 +37,12 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
+    public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
+        String after, List<ContentFilter<?>> filters, HashMap<String, String> config) {
+        return requestHandler.fetchRecentContent(feedName, amount, after, filters, config);
+    }
+
+    @Override
     public Normalizer<InstagramContent, OneFeedContent> getNormalizer() {
         return null;
     }

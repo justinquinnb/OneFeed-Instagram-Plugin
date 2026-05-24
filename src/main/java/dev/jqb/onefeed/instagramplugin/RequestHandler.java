@@ -106,6 +106,27 @@ public class RequestHandler {
         List<ContentFilter<?>> filters, HashMap<String, String> config
     ) {
         AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
+
+        return null;
+    }
+
+    /**
+     * Fetches the given {@code amount} of most recently published content from {@code this}
+     * provider's content source for the given feed.
+     *
+     * @param feedName the name of the feed whose content to retrieve
+     * @param amount the target amount of content to retrieve
+     * @param after the timestamp to start fetching content after
+     * @param filters the filters to try applying if supported by the API or best performed on the
+     *                content itself
+     * @param config a map of configuration options for this specific request
+     *
+     * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
+     */
+    public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
+        String after, List<ContentFilter<?>> filters, HashMap<String, String> config
+    ) {
+        AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
 //        HttpRequest request = HttpRequest.newBuilder()
 //            .uri(domain.resolve())
 

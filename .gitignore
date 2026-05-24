@@ -39,6 +39,5 @@ build/
 .DS_Store
 /.idea
 
-import-to-onefeed.sh
 postman/.dependencies/
 .env

@@ -41,3 +41,4 @@ build/
 
 postman/.dependencies/
 .env
+import-to-onefeed.sh

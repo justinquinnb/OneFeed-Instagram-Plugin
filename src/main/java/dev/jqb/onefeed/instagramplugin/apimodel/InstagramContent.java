@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagramplugin;
+package dev.jqb.onefeed.instagramplugin.apimodel;
 
 import dev.jqb.onefeed.api.content.RawContent;
 

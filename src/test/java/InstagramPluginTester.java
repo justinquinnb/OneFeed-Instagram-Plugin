@@ -29,7 +29,7 @@ public class InstagramPluginTester extends ProviderPluginTests<InstagramPlugin> 
         // Create the plugin env from it
         HashMap<String, FeedConfig> feedEnvs = new HashMap<>();
 
-        LoginType loginType = LoginType.valueOf(((String) dotEnv.get("LOGIN_TYPE")).toUpperCase());
+        LoginType loginType = LoginType.valueOf(dotEnv.get("LOGIN_TYPE").toUpperCase());
         String accessTokenValue = dotEnv.get("ACCESS_TOKEN");
         boolean isLongLived = Boolean.parseBoolean(dotEnv.get("TOKEN_LONG_LIVED"));
         boolean exchangeForLongLived = Boolean.parseBoolean(dotEnv.get("TOKEN_EXCHANGE_FOR_LONG_LIVED"));

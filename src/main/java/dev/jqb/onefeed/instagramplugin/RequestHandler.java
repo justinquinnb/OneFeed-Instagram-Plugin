@@ -3,13 +3,18 @@ package dev.jqb.onefeed.instagramplugin;
 import dev.jqb.onefeed.api.content.ContentFilter;
 import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Profile;
+import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.PageResult;
+import dev.jqb.onefeed.instagramplugin.apimodel.ProfileDeserializer;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +45,7 @@ public class RequestHandler {
     private ConcurrentHashMap<String, String> userIds = new ConcurrentHashMap<>();
 
     private final HttpClient httpClient = HttpClient.newBuilder()
-        .followRedirects(HttpClient.Redirect.NORMAL)
+        .followRedirects(Redirect.NORMAL)
         .build();
 
     private ObjectMapper mapper;
@@ -87,6 +92,9 @@ public class RequestHandler {
             } else if (accessTokenInfo.isLongLived() && accessTokenInfo.isAutoRefresh()){
                 refreshAccessToken(feedConfig);
             }
+
+            // Retrieve the ID of each user
+            userIds.put(feedName, fetchInstaUserId(feedName));
         }
     }
 
@@ -105,9 +113,9 @@ public class RequestHandler {
     public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
         List<ContentFilter<?>> filters, HashMap<String, String> config
     ) {
-        AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
+        return fetchContentPage(feedName, amount, null, filters, config).map(pageResult -> {
 
-        return null;
+        });
     }
 
     /**
@@ -116,7 +124,7 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
-     * @param after the timestamp to start fetching content after
+     * @param cursor a cursor of format {@code <cursor>-<offset>}
      * @param filters the filters to try applying if supported by the API or best performed on the
      *                content itself
      * @param config a map of configuration options for this specific request
@@ -124,13 +132,74 @@ public class RequestHandler {
      * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
      */
     public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
-        String after, List<ContentFilter<?>> filters, HashMap<String, String> config
+        String cursor, List<ContentFilter<?>> filters, HashMap<String, String> config
     ) {
-        AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
-//        HttpRequest request = HttpRequest.newBuilder()
-//            .uri(domain.resolve())
+        String[] cursorParts = cursor.split("-");
+        String cursorPart = cursorParts[0];
+        int offsetPart = Integer.parseInt(cursorParts[1]);
+        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursorPart, filters, config);
+
+        firstPage.expand(pageResult -> {
+
+        })
 
         return null;
+    }
+
+    /**
+     *
+     * @param feedName the name of the feed whose content to retrieve
+     * @param amount the target amount of content to retrieve
+     * @param after the cursor of the page to retrieve
+     * @param filters the filters to try applying if supported by the API or best performed on the
+     *                content itself
+     * @param config a map of configuration options for this specific request
+     *
+     * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
+     */
+    private Mono<PageResult> fetchContentPage(String feedName, int amount, String after,
+        List<ContentFilter<?>> filters, HashMap<String, String> config
+    ) {
+        URI uri = getContentPageUri(feedName, amount, after, filters, config);
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
+
+        return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
+            .map(response ->
+                mapper.readValue(response.body(), PageResult.class));
+    }
+
+    /**
+     * Gets the URI to fetch the desired content from.
+     *
+     * @param feedName the name of the feed whose content to retrieve
+     * @param amount the target amount of content to retrieve (max 10)
+     * @param after the cursor to start fetching content after, or null if the first page is desired
+     * @param filters the filters to try applying if supported by the API or best performed on the
+     *                content itself
+     * @param config a map of configuration options for this specific request
+     *
+     * @return the URI to fetch the desired content from
+     */
+    private URI getContentPageUri(String feedName, int amount, String after,
+        List<ContentFilter<?>> filters, HashMap<String, String> config
+    ) {
+        AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
+        String baseUrl = getBaseUrl(feedEnvs.get(feedName).getLoginType());
+
+        String afterArg;
+        if (after != null)
+            afterArg = "&after=" + after;
+        else {
+            afterArg = "";
+        }
+
+        return URI.create(String.format(
+                "%s/%s/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp," +
+                "permalink,children{media_url,media_type}&access_token=%s&limit=%s%s",
+                baseUrl, userIds.get(feedName), accessTokenInfo.getValue(), Math.min(amount, 10),
+                afterArg
+            )
+        );
     }
 
     /**
@@ -144,22 +213,19 @@ public class RequestHandler {
 
         // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
         // where both paths have the same args
-        Mono<String> userIdMono = (feedConfig.getLoginType() == LoginType.FACEBOOK)
-            ? getOrFetchInstaUserId(feedName)
-            : Mono.just("me");
+        String userId = (feedConfig.getLoginType() == LoginType.FACEBOOK)
+            ? userIds.get(feedName)
+            : "me";
 
-        return userIdMono
-            .flatMap(userId -> {
-                URI uri = URI.create(
-                    String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url",
-                        getBaseUrl(feedConfig.getLoginType()), userId,
-                        feedConfig.getAccessToken().getValue()
-                    )
-                );
-                HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
+        URI uri = URI.create(
+            String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url",
+                getBaseUrl(feedConfig.getLoginType()), userId,
+                feedConfig.getAccessToken().getValue()
+            )
+        );
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
 
-                return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()));
-            })
+        return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> mapper.readValue(response.body(), Profile.class));
     }
 
@@ -171,66 +237,43 @@ public class RequestHandler {
      * @return a {@link Mono} emitting the name of the Instagram User ID corresponding to the
      * {@code feedName}, sourced either from the cache {@link #userIds} or from the API itself
      */
-    public Mono<String> getOrFetchInstaUserId(String feedName) {
+    private String fetchInstaUserId(String feedName) {
         FeedConfig feedConfig = feedEnvs.get(feedName);
 
-        // Just provide the ID from the hashmap if we already have it
-        if (userIds.containsKey(feedName)) {
-            return Mono.just(userIds.get(feedName));
-        }
-
-        // Otherwise go get it for the first time
+        // Get the correct URI based on the login type
+        URI uri;
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
-            return fetchInstaIdFromFbLogin(feedName);
+            logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feedName);
+            uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
+                getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
+
+        } else { // Insta login
+            logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feedName);
+            uri = URI.create(String.format("%s/me?access_token=%s",
+                getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         }
 
-        return fetchInstaIdFromInstaLogin(feedName);
-    }
-
-    /**
-     * Fetches the Instagram User ID for the provided feed using the Instagram login approach.
-     *
-     * @param feedName the name of the feed whose Instagram User ID to retrieve
-     * @return a {@link Mono} emitting the name of the Instagram User ID corresponding to the
-     * {@code feedName}
-     */
-    private Mono<String> fetchInstaIdFromInstaLogin(String feedName) {
-        logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feedName);
-        FeedConfig feedConfig = feedEnvs.get(feedName);
-        URI uri = URI.create(String.format("%s/me?access_token=%s",
-            getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+        String responseBody = "";
 
-        return Mono
-            .fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
-            .map(response -> {
-                JsonNode root = mapper.readTree(response.body());
-                return root.get("id").asString();
-            })
-            .doOnNext(id -> userIds.put(feedName, id));
-    }
+        // Send the request
+        try {
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new Exception("Instagram User ID retrieval response was not OK: " + response.body());
+            }
+            responseBody = response.body();
+        } catch (Exception e) {
+            logger.error("Failed to retrieve Instagram User ID", e);
+        }
 
-    /**
-     * Fetches the Instagram User ID for the provided feed using the Facebook login approach.
-     *
-     * @param feedName the name of the feed whose Instagram User ID to retrieve
-     * @return a mono emitting the name of the Instagram User ID corresponding to the
-     * {@code feedName}
-     */
-    private Mono<String> fetchInstaIdFromFbLogin(String feedName) {
-        logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feedName);
-        FeedConfig feedConfig = feedEnvs.get(feedName);
-        URI uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
-            getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
-        HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
-
-        return Mono
-            .fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
-            .map(response -> {
-                JsonNode root = mapper.readTree(response.body());
-                return root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
-            })
-            .doOnNext(id -> userIds.put(feedName, id));
+        // Parse the response based on the login type
+        JsonNode root = mapper.readTree(responseBody);
+        if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
+            return root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
+        } else { // Insta login
+            return root.get("id").asString();
+        }
     }
 
     /**
@@ -243,7 +286,7 @@ public class RequestHandler {
         logger.debug("Attempting to exchange access token for long-lived one...");
         AccessToken accessToken = feedConfig.getAccessToken();
 
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
+        Builder requestBuilder = HttpRequest.newBuilder();
         String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
         String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
@@ -296,7 +339,7 @@ public class RequestHandler {
         logger.debug("Attempting to refresh access token...");
         AccessToken accessToken = feedConfig.getAccessToken();
 
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
+        Builder requestBuilder = HttpRequest.newBuilder();
         String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
         String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
@@ -310,7 +353,7 @@ public class RequestHandler {
 
             URI uri = URI.create(uriString);
             requestBuilder.uri(uri);
-        } else {
+        } else { // Insta login
             String uriString = String.format("%s/refresh_access_token?grant_type=ig_refresh_token&access_token=%s",
                 feedConfig.getLoginType(), accessTokenStr);
             URI uri = URI.create(uriString);

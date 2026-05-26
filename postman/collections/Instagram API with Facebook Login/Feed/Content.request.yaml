@@ -1,0 +1,11 @@
+$kind: http-request
+name: Content
+url: https://graph.facebook.com/:insta_user_id/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp,permalink,children{media_url,media_type}&access_token={{fb_access_token}}&limit=10
+method: GET
+queryParams:
+  fields: alt_text,media_type,media_url,like_count,caption,timestamp,permalink,children{media_url,media_type}
+  access_token: "{{fb_access_token}}"
+  limit: "10"
+pathVariables:
+  insta_user_id: "{{fb_ig_user_id}}"
+order: 1779593122757

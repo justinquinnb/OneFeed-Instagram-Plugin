@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagramplugin;
+package dev.jqb.onefeed.instagramplugin.apimodel;
 
 import dev.jqb.onefeed.api.feed.Profile;
 import tools.jackson.core.JacksonException;
@@ -12,7 +12,7 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  */
 public class ProfileDeserializer extends StdDeserializer<Profile> {
 
-    protected ProfileDeserializer(Class<?> vc) {
+    public ProfileDeserializer(Class<?> vc) {
         super(vc);
     }
 

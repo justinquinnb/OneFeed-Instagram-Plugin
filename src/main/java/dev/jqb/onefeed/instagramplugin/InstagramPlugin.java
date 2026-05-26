@@ -5,6 +5,7 @@ import dev.jqb.onefeed.api.feed.ProviderConfig;
 import dev.jqb.onefeed.api.plugin.FixedDelayTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTasks;
+import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import java.time.Duration;

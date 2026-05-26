@@ -8,6 +8,7 @@ import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Platform;
 import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
 import java.util.HashMap;
 import java.util.List;
 import reactor.core.publisher.Mono;

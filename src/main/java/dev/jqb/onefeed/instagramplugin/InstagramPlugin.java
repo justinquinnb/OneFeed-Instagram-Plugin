@@ -30,20 +30,23 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
      * @param providerConfig the {@code InstagramPlugin}-specific configuration containing API
      *                  keys, etc.
      */
-    public InstagramPlugin(ProviderConfig providerConfig) {
-        super(providerConfig);
+    public InstagramPlugin(String pluginId, ProviderConfig providerConfig) {
+        super(pluginId, providerConfig);
         this.feedEnvs = parseFeedEnvs(providerConfig);
     }
 
-    public InstagramPlugin(InstagramTestEnv providerConfig) {
-        super(providerConfig);
+    public InstagramPlugin(String pluginId, InstagramTestEnv providerConfig) {
+        super(pluginId, providerConfig);
         this.feedEnvs = providerConfig.getFeedEnvs();
     }
 
     @Override
     public void start() {
-        this.requestHandler = RequestHandler.using(feedEnvs);
-        this.provider = new InstagramProvider(requestHandler);
+        this.requestHandler = RequestHandler.using(pluginId, feedEnvs);
+        this.provider = new InstagramProvider(requestHandler, Boolean.parseBoolean(
+            (String)providerConfig.getPluginVars().getOrDefault(
+                "useTotalMetricsForNormalization", "false"))
+        );
         logger.info("Instagram plugin started");
     }
 

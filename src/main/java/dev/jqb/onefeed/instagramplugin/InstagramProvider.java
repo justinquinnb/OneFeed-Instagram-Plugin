@@ -22,13 +22,15 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
      * The handler used to actually make the API requests
      */
     private final RequestHandler requestHandler;
+    private final Normalizer<InstagramContent, OneFeedContent> normalizer;
 
     /**
      * Constructs a new {@code InstagramProvider}
      * @param requestHandler the handler used to actually make the API requests
      */
-    public InstagramProvider(RequestHandler requestHandler) {
+    public InstagramProvider(RequestHandler requestHandler, boolean useTotalMetricsForNormalization) {
         this.requestHandler = requestHandler;
+        this.normalizer = new InstagramContentNormalizer(useTotalMetricsForNormalization);
     }
 
     @Override
@@ -45,7 +47,7 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
 
     @Override
     public Normalizer<InstagramContent, OneFeedContent> getNormalizer() {
-        return null;
+        return normalizer;
     }
 
     @Override

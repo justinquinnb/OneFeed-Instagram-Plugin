@@ -1,9 +1,9 @@
 $kind: http-request
 name: Content
-url: https://graph.instagram.com/me/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp,permalink,children{media_url,media_type}&limit=10&access_token={{ig_access_token}}
+url: https://graph.instagram.com/me/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type}&limit=10&access_token={{ig_access_token}}
 method: GET
 queryParams:
-  fields: alt_text,media_type,media_url,like_count,caption,timestamp,permalink,children{media_url,media_type}
+  fields: alt_text,media_type,media_url,like_count,caption,timestamp,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type}
   limit: "10"
   access_token: "{{ig_access_token}}"
 order: 1779593540686

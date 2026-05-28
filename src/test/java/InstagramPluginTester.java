@@ -1,8 +1,3 @@
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import dev.jqb.onefeed.api.feed.Profile;
-import dev.jqb.onefeed.api.feed.Provider;
 import dev.jqb.onefeed.instagramplugin.InstagramPlugin;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
@@ -11,11 +6,7 @@ import dev.jqb.onefeed.instagramplugin.config.LoginType;
 import dev.jqb.onefeed.plugintestkit.ProviderPluginTests;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.HashMap;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 /**
  * A test class for the provider
@@ -43,7 +34,9 @@ public class InstagramPluginTester extends ProviderPluginTests<InstagramPlugin> 
         String feedName = dotEnv.get("FEED_NAME");
         feedEnvs.put(feedName, feedConfig);
 
-        InstagramPlugin instance = new InstagramPlugin(new InstagramTestEnv(null, feedEnvs));
+        HashMap<String, Object> providerVars = new HashMap<>();
+        providerVars.put("USE_TOTAL_METRICS_FOR_NORMALIZATION", "true");
+        InstagramPlugin instance = new InstagramPlugin("test", new InstagramTestEnv(providerVars, feedEnvs));
         instance.start();
 
         return instance;

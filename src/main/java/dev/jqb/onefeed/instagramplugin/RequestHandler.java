@@ -1,9 +1,12 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.ContentFilter;
+import dev.jqb.onefeed.api.content.SourceInfo;
+import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Profile;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContentDeserializer;
 import dev.jqb.onefeed.instagramplugin.apimodel.PageResult;
 import dev.jqb.onefeed.instagramplugin.apimodel.ProfileDeserializer;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
@@ -18,14 +21,20 @@ import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import tools.jackson.databind.PropertyNamingStrategy;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 
@@ -51,17 +60,25 @@ public class RequestHandler {
     private ObjectMapper mapper;
 
     /**
+     * The ID of the plugin using this {@code RequestHandler}, for signing generated content with
+     */
+    private final String pluginId;
+
+    /**
      * The plugin's environment variables
      */
     private final HashMap<String, FeedConfig> feedEnvs;
 
     /**
      * Creates a new, initialized {@code RequestHandler} using the given {@code providerEnv}.
+     *
+     * @param pluginId the ID of the plugin using this {@code RequestHandler}, for signing generated
+     *                 content with
      * @param feedEnvs the environment variables for each feed
      * @return a new {@code RequestHandler} already initialized and ready for use
      */
-    public static RequestHandler using(HashMap<String, FeedConfig> feedEnvs) {
-        RequestHandler requestHandler = new RequestHandler(feedEnvs);
+    public static RequestHandler using(String pluginId, HashMap<String, FeedConfig> feedEnvs) {
+        RequestHandler requestHandler = new RequestHandler(pluginId, feedEnvs);
         requestHandler.init();
 
         return requestHandler;
@@ -69,13 +86,23 @@ public class RequestHandler {
 
     /**
      * Constructs a new {@code RequestHandler}.
+     *
+     * @param pluginId the ID of the plugin using this {@code RequestHandler}, for signing generated
+     *                 content with
      * @param feedEnvs the environment variables for each feed
      */
-    private RequestHandler(HashMap<String, FeedConfig> feedEnvs) {
+    private RequestHandler(String pluginId, HashMap<String, FeedConfig> feedEnvs) {
+        this.pluginId = pluginId;
         this.feedEnvs = feedEnvs;
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(Profile.class, new ProfileDeserializer(Profile.class));
-        this.mapper = JsonMapper.builder().addModule(module).build();
+        SimpleModule profileModule = new SimpleModule();
+        profileModule.addDeserializer(Profile.class, new ProfileDeserializer());
+        SimpleModule contentModule = new SimpleModule();
+        contentModule.addDeserializer(InstagramContent.class, new InstagramContentDeserializer());
+
+        this.mapper = JsonMapper.builder()
+            .addModules(profileModule, contentModule)
+            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .build();
     }
 
     /**
@@ -113,9 +140,24 @@ public class RequestHandler {
     public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
         List<ContentFilter<?>> filters, HashMap<String, String> config
     ) {
-        return fetchContentPage(feedName, amount, null, filters, config).map(pageResult -> {
+        // Get that first page based on the cursor
+        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, null, 0);
 
-        });
+        // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
+        // content
+        Mono<List<PageResult>> allPages = firstPage.expand(pageResult -> {
+            int usableContentCount = pageResult.getContentCountAcrossPages();
+
+            if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
+                return fetchContentPage(feedName, amount - usableContentCount,
+                    pageResult.getNextPageCursor(), usableContentCount);
+            }
+
+            return Mono.empty();
+        }).collectList();
+
+        // Take all the page data and chuck it into the cleaner, filtered content response
+        return collectPagesAsResponse(allPages, feedName);
     }
 
     /**
@@ -134,38 +176,92 @@ public class RequestHandler {
     public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
         String cursor, List<ContentFilter<?>> filters, HashMap<String, String> config
     ) {
+        // Interpret the different parts of the "cursor"... the offset (location of the first piece
+        // to consider within the page) and the cursor to the page itself (cursor)
         String[] cursorParts = cursor.split("-");
         String cursorPart = cursorParts[0];
         int offsetPart = Integer.parseInt(cursorParts[1]);
-        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursorPart, filters, config);
 
-        firstPage.expand(pageResult -> {
+        // Get that first page based on the cursor
+        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursorPart, 0);
 
-        })
+        // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
+        // content
+        Mono<List<PageResult>> allPages = firstPage.expand(pageResult -> {
+            int usableContentCount = pageResult.getContentCountAcrossPages() - offsetPart;
 
-        return null;
+            if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
+                return fetchContentPage(feedName, amount - usableContentCount,
+                    pageResult.getNextPageCursor(), usableContentCount);
+            }
+
+            return Mono.empty();
+        }).collectList();
+
+        // Take all the page data and chuck it into the cleaner, filtered content response
+        return collectPagesAsResponse(allPages, feedName);
     }
 
     /**
+     * Collect the provided list of {@link PageResult}s into a single {@link Mono} emitting a
+     * {@link FilteredContent} package.
+     *
+     * @param pageResults the list of {@link PageResult}s to collect
+     * @param feedName the name of the feed to which the content belongs
+     *
+     * @return a {@link Mono} emitting a {@link FilteredContent} package containing the
+     * retrieved content
+     */
+    public Mono<FilteredContent<InstagramContent>> collectPagesAsResponse(
+        Mono<List<PageResult>> pageResults, String feedName
+    ) {
+        FeedIdentifier feedId = new FeedIdentifier(pluginId, feedName);
+        return pageResults.map(pages -> {
+            List<InstagramContent> allContent = new ArrayList<>();
+            for (PageResult pageResult : pages) {
+                allContent.addAll(pageResult.getContent());
+            }
+
+            // Complete all the content
+            for (InstagramContent content : allContent) {
+                SourceInfo source = content.getSource();
+                source.setFeedId(feedId);
+            }
+
+            return new FilteredContent<>(allContent, Instant.now(), List.of());
+        });
+    }
+
+    /**
+     * Fetches the given {@code amount} of content from the specified page of content.
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
-     * @param after the cursor of the page to retrieve
-     * @param filters the filters to try applying if supported by the API or best performed on the
-     *                content itself
-     * @param config a map of configuration options for this specific request
      *
-     * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
+     * @return a {@link Mono} that emits the {@link PageResult}
      */
     private Mono<PageResult> fetchContentPage(String feedName, int amount, String after,
-        List<ContentFilter<?>> filters, HashMap<String, String> config
+        int currentTotal
     ) {
-        URI uri = getContentPageUri(feedName, amount, after, filters, config);
+        URI uri = getContentUri(feedName, amount, after);
+        logger.debug("Fetching content page from URI: {}", uri);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
 
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
-            .map(response ->
-                mapper.readValue(response.body(), PageResult.class));
+            .map(response -> {
+                    logger.debug("Response:\n{}", response.body());
+
+                    JsonNode root = mapper.readTree(response.body());
+                    String nextPage = root.get("paging").get("cursors").get("after").asString();
+
+                    List<InstagramContent> content = mapper.treeToValue(root.get("data"),
+                        new TypeReference<List<InstagramContent>>() {});
+                    content.getLast().setNextPageCursor(nextPage);
+                    PageResult page = new PageResult(content, nextPage);
+                    page.setContentCountAcrossPages(currentTotal + page.getContent().size());
+                    return page;
+                }
+            );
     }
 
     /**
@@ -173,31 +269,28 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve (max 10)
-     * @param after the cursor to start fetching content after, or null if the first page is desired
-     * @param filters the filters to try applying if supported by the API or best performed on the
-     *                content itself
-     * @param config a map of configuration options for this specific request
+     * @param cursor the cursor of the page to retrieve, or {@code null} to retrieve the first page
      *
      * @return the URI to fetch the desired content from
      */
-    private URI getContentPageUri(String feedName, int amount, String after,
-        List<ContentFilter<?>> filters, HashMap<String, String> config
-    ) {
+    private URI getContentUri(String feedName, int amount, String cursor) {
         AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
         String baseUrl = getBaseUrl(feedEnvs.get(feedName).getLoginType());
 
-        String afterArg;
-        if (after != null)
-            afterArg = "&after=" + after;
-        else {
-            afterArg = "";
+        String afterArg = "";
+        if (cursor != null) {
+            afterArg = "&after=" + cursor;
         }
 
+        String encodedFields = URLEncoder.encode(
+            "alt_text,media_type,media_url,like_count,caption,timestamp," +
+                "permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count," +
+                "total_comments_count,children{media_url,media_type}", StandardCharsets.UTF_8);
+
         return URI.create(String.format(
-                "%s/%s/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp," +
-                "permalink,children{media_url,media_type}&access_token=%s&limit=%s%s",
-                baseUrl, userIds.get(feedName), accessTokenInfo.getValue(), Math.min(amount, 10),
-                afterArg
+                "%s/%s/media?access_token=%s&limit=%s%s&fields=%s",
+                baseUrl, userIds.get(feedName), accessTokenInfo.getValue(),
+                Math.min(amount, 10), afterArg, encodedFields
             )
         );
     }

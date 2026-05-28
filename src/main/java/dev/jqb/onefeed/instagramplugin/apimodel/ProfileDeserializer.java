@@ -12,8 +12,8 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  */
 public class ProfileDeserializer extends StdDeserializer<Profile> {
 
-    public ProfileDeserializer(Class<?> vc) {
-        super(vc);
+    public ProfileDeserializer() {
+        super(Profile.class);
     }
 
     @Override

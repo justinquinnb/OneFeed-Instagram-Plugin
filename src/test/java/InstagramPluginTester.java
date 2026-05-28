@@ -41,4 +41,9 @@ public class InstagramPluginTester extends ProviderPluginTests<InstagramPlugin> 
 
         return instance;
     }
+
+    @Override
+    protected int getContentPerPageLimit() {
+        return 10;
+    }
 }

@@ -249,17 +249,23 @@ public class RequestHandler {
 
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {
-                    logger.debug("Response:\n{}", response.body());
+                logger.debug("Response:\n{}", response.body());
 
-                    JsonNode root = mapper.readTree(response.body());
-                    String nextPage = root.get("paging").get("cursors").get("after").asString();
+                JsonNode root = mapper.readTree(response.body());
+                List<InstagramContent> content = mapper.treeToValue(root.get("data"),
+                    new TypeReference<List<InstagramContent>>() {});
 
-                    List<InstagramContent> content = mapper.treeToValue(root.get("data"),
-                        new TypeReference<List<InstagramContent>>() {});
+                String nextPage = root.path("paging").path("cursors")
+                    .path("after").asString(null);
+
+                if (!content.isEmpty()) {
                     content.getLast().setNextPageCursor(nextPage);
-                    PageResult page = new PageResult(content, nextPage);
-                    page.setContentCountAcrossPages(currentTotal + page.getContent().size());
-                    return page;
+                }
+
+                PageResult page = new PageResult(content, nextPage);
+                page.setContentCountAcrossPages(currentTotal + page.getContent().size());
+
+                return page;
                 }
             );
     }

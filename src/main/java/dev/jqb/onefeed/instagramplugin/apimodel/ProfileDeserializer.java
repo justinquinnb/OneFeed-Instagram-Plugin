@@ -1,6 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel;
 
-import dev.jqb.onefeed.api.feed.Profile;
+import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.api.impl.Profile;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
@@ -25,6 +26,8 @@ public class ProfileDeserializer extends StdDeserializer<Profile> {
         String profilePicSrc = root.get("profile_picture_url").asString();
         String feedUrl = String.format("https://instagram.com/%s", handle);
 
-        return new Profile(id, handle, feedUrl, name, profilePicSrc);
+        SourceInfo source = new SourceInfo(null, id, feedUrl);
+
+        return new Profile(source, handle, name, profilePicSrc);
     }
 }

@@ -6,7 +6,7 @@ import dev.jqb.onefeed.api.content.Normalizer;
 import dev.jqb.onefeed.api.feed.AutoProvider;
 import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.Platform;
-import dev.jqb.onefeed.api.feed.Profile;
+import dev.jqb.onefeed.api.impl.Profile;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
 import java.util.HashMap;

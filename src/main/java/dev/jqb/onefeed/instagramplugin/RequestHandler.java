@@ -1,10 +1,10 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.ContentFilter;
-import dev.jqb.onefeed.api.content.SourceInfo;
 import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.FilteredContent;
-import dev.jqb.onefeed.api.feed.Profile;
+import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.api.impl.Profile;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContentDeserializer;
 import dev.jqb.onefeed.instagramplugin.apimodel.PageResult;
@@ -33,8 +33,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.PropertyNamingStrategies;
-import tools.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
-import tools.jackson.databind.PropertyNamingStrategy;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 
@@ -323,9 +321,15 @@ public class RequestHandler {
             )
         );
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
+        FeedIdentifier feedId = new FeedIdentifier(pluginId, feedName);
 
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
-            .map(response -> mapper.readValue(response.body(), Profile.class));
+            .map(response -> {
+                Profile profile = mapper.readValue(response.body(), Profile.class);
+                SourceInfo source = profile.getSource();
+                source.setFeedId(feedId);
+                return profile;
+            });
     }
 
     /**

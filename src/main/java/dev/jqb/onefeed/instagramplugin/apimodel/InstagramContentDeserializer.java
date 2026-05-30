@@ -47,6 +47,9 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
         content.setMediaUrl(root.get("media_url").asString());
         content.setCaption(root.get("caption").asString(null));
 
+        content.setAltText(root.path("alt_text").asString(null));
+        content.setThumbnailUrl(root.path("thumbnail_url").asString(null));
+
         content.setLikeCount(root.path("like_count").asInt(0));
         content.setTotalLikeCount(root.path("total_like_count").asInt(0));
         content.setSharesCount(root.path("shares_count").asInt(0));

@@ -22,6 +22,12 @@ public class InstagramContent extends RawContent {
     private String mediaUrl;
     private String caption;
 
+    @Nullable
+    private String altText;
+
+    @Nullable
+    private String thumbnailUrl;
+
     // Distinction specified by API docs
     private int likeCount;
     private int totalLikeCount;
@@ -42,5 +48,17 @@ public class InstagramContent extends RawContent {
 
     public InstagramContent(SourceInfo source, @Nullable String nextPageCursor, Instant published) {
         super(source, nextPageCursor, published);
+    }
+
+    /**
+     * Gets the primary media of {@code this} content object (i.e. the solo photo or video) as a
+     * {@link InstagramContentChild}.
+     *
+     * @return the primary media of {@code this} content object (i.e. the solo photo or video) as a
+     * {@link InstagramContentChild}
+     */
+    public InstagramContentChild getPrimaryMediaAsChild() {
+        return new InstagramContentChild(mediaType, mediaUrl, source.getIdOnPlatform(),
+            altText, thumbnailUrl);
     }
 }

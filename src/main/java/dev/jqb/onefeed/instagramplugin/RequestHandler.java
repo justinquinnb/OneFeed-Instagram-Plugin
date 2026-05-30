@@ -287,9 +287,11 @@ public class RequestHandler {
         }
 
         String encodedFields = URLEncoder.encode(
-            "alt_text,media_type,media_url,like_count,caption,timestamp," +
-                "permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count," +
-                "total_comments_count,children{media_url,media_type}", StandardCharsets.UTF_8);
+            "alt_text,media_type,media_url,like_count,caption,timestamp,permalink,"
+                + "thumbnail_url,shares_count,saved_count,reposts_count,"
+                + "total_views_count,total_comments_count,children"
+                + "{media_url,media_type,alt_text,thumbnail_url}",
+            StandardCharsets.UTF_8);
 
         return URI.create(String.format(
                 "%s/%s/media?access_token=%s&limit=%s%s&fields=%s",

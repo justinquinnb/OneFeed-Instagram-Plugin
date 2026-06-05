@@ -127,13 +127,10 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
-     * @param config a map of configuration options for this specific request
      *
      * @return a {@link Flux} that emits the retrieved content
      */
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
-        HashMap<String, String> config
-    ) {
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount) {
         // Get that first page based on the cursor
         Mono<PageResult> firstPage = fetchContentPage(feedName, amount, null, 0);
 
@@ -161,13 +158,10 @@ public class RequestHandler {
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
      * @param cursor a cursor of format {@code <cursor>-<offset>}
-     * @param config a map of configuration options for this specific request
      *
      * @return a {@link Flux} that emits the retrieved content
      */
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
-        String cursor, HashMap<String, String> config
-    ) {
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, String cursor) {
         // Interpret the different parts of the "cursor"... the offset (location of the first piece
         // to consider within the page) and the cursor to the page itself (cursor)
         String[] cursorParts = cursor.split("-");

@@ -32,15 +32,13 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
-        HashMap<String, String> config) {
-        return requestHandler.fetchRecentContent(feedName, amount, config);
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount) {
+        return requestHandler.fetchRecentContent(feedName, amount);
     }
 
     @Override
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
-        String after, HashMap<String, String> config) {
-        return requestHandler.fetchRecentContent(feedName, amount, after, config);
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, String after) {
+        return requestHandler.fetchRecentContent(feedName, amount, after);
     }
 
     @Override

@@ -1,8 +1,6 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.api.content.ContentFilter;
 import dev.jqb.onefeed.api.feed.FeedIdentifier;
-import dev.jqb.onefeed.api.feed.FilteredContent;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Profile;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
@@ -21,13 +19,13 @@ import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
@@ -129,21 +127,19 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
-     * @param filters the filters to try applying if supported by the API or best performed on the
-     *                content itself
      * @param config a map of configuration options for this specific request
      *
-     * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
+     * @return a {@link Flux} that emits the retrieved content
      */
-    public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
-        List<ContentFilter<?>> filters, HashMap<String, String> config
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
+        HashMap<String, String> config
     ) {
         // Get that first page based on the cursor
         Mono<PageResult> firstPage = fetchContentPage(feedName, amount, null, 0);
 
         // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
         // content
-        Mono<List<PageResult>> allPages = firstPage.expand(pageResult -> {
+        Flux<PageResult> allPages = firstPage.expand(pageResult -> {
             int usableContentCount = pageResult.getContentCountAcrossPages();
 
             if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
@@ -152,10 +148,10 @@ public class RequestHandler {
             }
 
             return Mono.empty();
-        }).collectList();
+        });
 
         // Take all the page data and chuck it into the cleaner, filtered content response
-        return collectPagesAsResponse(allPages, feedName);
+        return collectPageContent(allPages, feedName);
     }
 
     /**
@@ -165,14 +161,12 @@ public class RequestHandler {
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
      * @param cursor a cursor of format {@code <cursor>-<offset>}
-     * @param filters the filters to try applying if supported by the API or best performed on the
-     *                content itself
      * @param config a map of configuration options for this specific request
      *
-     * @return a {@link Mono} that emits a {@link FilteredContent} package containing the retrieved content
+     * @return a {@link Flux} that emits the retrieved content
      */
-    public Mono<FilteredContent<InstagramContent>> fetchRecentContent(String feedName, int amount,
-        String cursor, List<ContentFilter<?>> filters, HashMap<String, String> config
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
+        String cursor, HashMap<String, String> config
     ) {
         // Interpret the different parts of the "cursor"... the offset (location of the first piece
         // to consider within the page) and the cursor to the page itself (cursor)
@@ -185,7 +179,7 @@ public class RequestHandler {
 
         // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
         // content
-        Mono<List<PageResult>> allPages = firstPage.expand(pageResult -> {
+        Flux<PageResult> allPages = firstPage.expand(pageResult -> {
             int usableContentCount = pageResult.getContentCountAcrossPages() - offsetPart;
 
             if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
@@ -194,31 +188,27 @@ public class RequestHandler {
             }
 
             return Mono.empty();
-        }).collectList();
+        });
 
         // Take all the page data and chuck it into the cleaner, filtered content response
-        return collectPagesAsResponse(allPages, feedName);
+        return collectPageContent(allPages, feedName);
     }
 
     /**
-     * Collect the provided list of {@link PageResult}s into a single {@link Mono} emitting a
-     * {@link FilteredContent} package.
+     * Collect the provided list of {@link PageResult}s into a single {@link Flux} stream of
+     * {@link InstagramContent}.
      *
      * @param pageResults the list of {@link PageResult}s to collect
      * @param feedName the name of the feed to which the content belongs
      *
-     * @return a {@link Mono} emitting a {@link FilteredContent} package containing the
-     * retrieved content
+     * @return a {@link Flux} emitting the retrieved content
      */
-    public Mono<FilteredContent<InstagramContent>> collectPagesAsResponse(
-        Mono<List<PageResult>> pageResults, String feedName
+    public Flux<InstagramContent> collectPageContent(Flux<PageResult> pageResults,
+        String feedName
     ) {
         FeedIdentifier feedId = new FeedIdentifier(pluginId, feedName);
-        return pageResults.map(pages -> {
-            List<InstagramContent> allContent = new ArrayList<>();
-            for (PageResult pageResult : pages) {
-                allContent.addAll(pageResult.getContent());
-            }
+        return pageResults.flatMap(page -> {
+            List<InstagramContent> allContent = new ArrayList<>(page.getContent());
 
             // Complete all the content
             for (InstagramContent content : allContent) {
@@ -226,7 +216,7 @@ public class RequestHandler {
                 source.setFeedId(feedId);
             }
 
-            return new FilteredContent<>(allContent, Instant.now(), List.of());
+            return Flux.fromIterable(allContent);
         });
     }
 

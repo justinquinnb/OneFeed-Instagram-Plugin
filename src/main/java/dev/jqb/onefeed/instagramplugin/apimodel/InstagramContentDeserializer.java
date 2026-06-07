@@ -38,7 +38,7 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
         }
 
         // The provider sets the cursor and feedId later...
-        SourceInfo sourceInfo = new SourceInfo(null, idOnPlatform, url);
+        SourceInfo sourceInfo = new SourceInfo(null, null, idOnPlatform, url);
         InstagramContent content = new InstagramContent(sourceInfo, null, published);
 
         // Many of these will be null, but the goal is to capture as much data as we can so

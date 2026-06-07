@@ -1,6 +1,7 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.Normalizer;
+import dev.jqb.onefeed.api.content.PlatformCursor;
 import dev.jqb.onefeed.api.feed.AutoProvider;
 import dev.jqb.onefeed.api.feed.FeedUpdate;
 import dev.jqb.onefeed.api.feed.Platform;
@@ -37,8 +38,10 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, String after) {
-        return requestHandler.fetchRecentContent(feedName, amount, after);
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount,
+        PlatformCursor cursor
+    ) {
+        return requestHandler.fetchRecentContent(feedName, amount, cursor);
     }
 
     @Override

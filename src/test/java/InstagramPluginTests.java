@@ -60,10 +60,10 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
 
     @Override
     protected InstagramContent getNormalizerInput() {
-        FeedIdentifier feedId = new FeedIdentifier("test-instagram-provider-id",
-            "test-feed-name");
-        SourceInfo source = new SourceInfo(feedId, "testId123",
-            "https://www.instagram.com/p/abcdefghijk");
+        SourceInfo source = new SourceInfo("test-instagram-provider-id",
+            "test-feed-name", "testID123",
+            "https://www.instagram.com/p/abcdefghijk"
+        );
         InstagramContent content = new InstagramContent(source, "testCursor123",
             Instant.ofEpochMilli(1234567890L));
 
@@ -99,7 +99,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
         InstagramContentChild child1 = children.get(0);
         Media.MediaType mediaType1 = (child1.getMediaType() == MediaType.VIDEO) ?
             Media.MediaType.VIDEO : Media.MediaType.IMAGE;
-        Media media1 = new Media(mediaType1, content.getSource().getUrl() + "?img_index=1");
+        Media media1 = new Media(mediaType1, content.getSource().getUrlOnPlatform() + "?img_index=1");
         media1.setAltText(child1.getAltText());
         media1.setThumbnailSrc(child1.getThumbnailUrl());
         media1.setSrc(child1.getMediaUrl());
@@ -110,7 +110,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
         InstagramContentChild child2 = children.get(1);
         Media.MediaType mediaType2 = (child2.getMediaType() == MediaType.VIDEO) ?
             Media.MediaType.VIDEO : Media.MediaType.IMAGE;
-        Media media2 = new Media(mediaType2, content.getSource().getUrl() + "?img_index=2");
+        Media media2 = new Media(mediaType2, content.getSource().getUrlOnPlatform() + "?img_index=2");
         media2.setAltText(child2.getAltText());
         media2.setThumbnailSrc(child2.getThumbnailUrl());
         media2.setSrc(child2.getMediaUrl());

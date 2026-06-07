@@ -1,5 +1,6 @@
 package dev.jqb.onefeed.instagramplugin;
 
+import dev.jqb.onefeed.api.content.PlatformCursor;
 import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Profile;
@@ -161,20 +162,17 @@ public class RequestHandler {
      *
      * @return a {@link Flux} that emits the retrieved content
      */
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, String cursor) {
+    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, PlatformCursor cursor) {
         // Interpret the different parts of the "cursor"... the offset (location of the first piece
         // to consider within the page) and the cursor to the page itself (cursor)
-        String[] cursorParts = cursor.split("-");
-        String cursorPart = cursorParts[0];
-        int offsetPart = Integer.parseInt(cursorParts[1]);
 
         // Get that first page based on the cursor
-        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursorPart, 0);
+        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursor.getCursorOnPlatform(), cursor.getOffsetFromCursor());
 
         // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
         // content
         Flux<PageResult> allPages = firstPage.expand(pageResult -> {
-            int usableContentCount = pageResult.getContentCountAcrossPages() - offsetPart;
+            int usableContentCount = pageResult.getContentCountAcrossPages() - cursor.getOffsetFromCursor();
 
             if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
                 return fetchContentPage(feedName, amount - usableContentCount,
@@ -200,14 +198,14 @@ public class RequestHandler {
     public Flux<InstagramContent> collectPageContent(Flux<PageResult> pageResults,
         String feedName
     ) {
-        FeedIdentifier feedId = new FeedIdentifier(pluginId, feedName);
         return pageResults.flatMap(page -> {
             List<InstagramContent> allContent = new ArrayList<>(page.getContent());
 
             // Complete all the content
             for (InstagramContent content : allContent) {
                 SourceInfo source = content.getSource();
-                source.setFeedId(feedId);
+                source.setFeedName(feedName);
+                source.setProviderId(pluginId);
             }
 
             return Flux.fromIterable(allContent);
@@ -219,13 +217,17 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
+     * @param pageCursor the cursor of the page to retrieve, or {@code null} to retrieve the first
+     *                   page
+     * @param currentTotal the total amount of content already retrieved thus far (cumulative sum
+     *                     of this query's results, plus all prior queries)
      *
      * @return a {@link Mono} that emits the {@link PageResult}
      */
-    private Mono<PageResult> fetchContentPage(String feedName, int amount, String after,
+    private Mono<PageResult> fetchContentPage(String feedName, int amount, String pageCursor,
         int currentTotal
     ) {
-        URI uri = getContentUri(feedName, amount, after);
+        URI uri = getContentUri(feedName, amount, pageCursor);
         logger.debug("Fetching content page from URI: {}", uri);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
 
@@ -257,17 +259,17 @@ public class RequestHandler {
      *
      * @param feedName the name of the feed whose content to retrieve
      * @param amount the target amount of content to retrieve (max 10)
-     * @param cursor the cursor of the page to retrieve, or {@code null} to retrieve the first page
+     * @param pageCursor the cursor of the page to retrieve, or {@code null} to retrieve the first page
      *
      * @return the URI to fetch the desired content from
      */
-    private URI getContentUri(String feedName, int amount, String cursor) {
+    private URI getContentUri(String feedName, int amount, String pageCursor) {
         AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
         String baseUrl = getBaseUrl(feedEnvs.get(feedName).getLoginType());
 
         String afterArg = "";
-        if (cursor != null) {
-            afterArg = "&after=" + cursor;
+        if (pageCursor != null) {
+            afterArg = "&after=" + pageCursor;
         }
 
         String encodedFields = URLEncoder.encode(
@@ -307,13 +309,12 @@ public class RequestHandler {
             )
         );
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
-        FeedIdentifier feedId = new FeedIdentifier(pluginId, feedName);
-
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {
                 Profile profile = mapper.readValue(response.body(), Profile.class);
                 SourceInfo source = profile.getSource();
-                source.setFeedId(feedId);
+                source.setFeedName(feedName);
+                source.setProviderId(pluginId);
                 return profile;
             });
     }

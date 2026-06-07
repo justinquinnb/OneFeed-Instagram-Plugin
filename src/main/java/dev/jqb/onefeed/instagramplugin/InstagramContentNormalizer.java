@@ -47,7 +47,7 @@ public class InstagramContentNormalizer implements Normalizer<InstagramContent, 
             children.add(content.getPrimaryMediaAsChild());
         }
 
-        ofc.setMedia(convertToMedia(content.getSource().getUrl(), children));
+        ofc.setMedia(convertToMedia(content.getSource().getUrlOnPlatform(), children));
 
         return ofc;
     }

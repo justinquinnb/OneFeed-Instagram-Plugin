@@ -26,7 +26,7 @@ public class ProfileDeserializer extends StdDeserializer<Profile> {
         String profilePicSrc = root.get("profile_picture_url").asString();
         String feedUrl = String.format("https://instagram.com/%s", handle);
 
-        SourceInfo source = new SourceInfo(null, id, feedUrl);
+        SourceInfo source = new SourceInfo(null, null, id, feedUrl);
 
         return new Profile(source, handle, name, profilePicSrc);
     }

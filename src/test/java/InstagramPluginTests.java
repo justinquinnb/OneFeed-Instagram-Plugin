@@ -1,4 +1,4 @@
-import dev.jqb.onefeed.api.content.RawContent;
+import dev.jqb.onefeed.api.content.PlatformContent;
 import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Media;

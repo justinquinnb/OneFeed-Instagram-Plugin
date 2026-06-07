@@ -1,6 +1,6 @@
 package dev.jqb.onefeed.instagramplugin.apimodel;
 
-import dev.jqb.onefeed.api.content.RawContent;
+import dev.jqb.onefeed.api.content.PlatformContent;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import java.time.Instant;
 import java.util.List;
@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 @Getter
 @Setter
 @ToString(callSuper = true)
-public class InstagramContent extends RawContent {
+public class InstagramContent extends PlatformContent {
     private MediaType mediaType;
     private String mediaUrl;
     private String caption;

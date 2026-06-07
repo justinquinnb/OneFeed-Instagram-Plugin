@@ -1,7 +1,6 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.PlatformCursor;
-import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Profile;
 import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;

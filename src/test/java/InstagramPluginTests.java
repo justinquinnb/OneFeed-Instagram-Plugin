@@ -1,5 +1,3 @@
-import dev.jqb.onefeed.api.content.PlatformContent;
-import dev.jqb.onefeed.api.feed.FeedIdentifier;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Media;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
@@ -17,7 +15,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import org.junit.jupiter.api.Test;
 
 /**
  * A test class for the provider

@@ -2,7 +2,7 @@ package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.Normalizer;
 import dev.jqb.onefeed.api.content.PlatformCursor;
-import dev.jqb.onefeed.api.feed.AutoProvider;
+import dev.jqb.onefeed.api.provider.AutoProvider;
 import dev.jqb.onefeed.api.feed.FeedUpdate;
 import dev.jqb.onefeed.api.feed.Platform;
 import dev.jqb.onefeed.api.impl.OneFeedContent;

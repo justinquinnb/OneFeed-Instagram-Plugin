@@ -2,6 +2,8 @@ package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.PlatformCursor;
 import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.api.impl.OneFeedAuthor;
+import dev.jqb.onefeed.api.impl.OneFeedContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentDeserializer;
@@ -66,6 +68,17 @@ public class RequestHandler {
     private final HashMap<String, FeedConfig> feedEnvs;
 
     /**
+     * Whether to use lite fetching, which only requests the fields necessary to complete a
+     * {@link OneFeedAuthor} or {@link OneFeedContent} object
+     */
+    private final boolean useLiteFetchMode;
+
+    /**
+     * Whether to request total metrics for content or just the regular metrics
+     */
+    private final boolean useTotalMetrics;
+
+    /**
      * Creates a new, initialized {@code RequestHandler} using the given {@code providerEnv}.
      *
      * @param pluginId the ID of the plugin using this {@code RequestHandler}, for signing generated
@@ -73,8 +86,11 @@ public class RequestHandler {
      * @param feedEnvs the environment variables for each feed
      * @return a new {@code RequestHandler} already initialized and ready for use
      */
-    public static RequestHandler using(String pluginId, HashMap<String, FeedConfig> feedEnvs) {
-        RequestHandler requestHandler = new RequestHandler(pluginId, feedEnvs);
+    public static RequestHandler using(String pluginId, HashMap<String, FeedConfig> feedEnvs,
+        boolean useLiteFetchMode, boolean useTotalMetrics
+    ) {
+        RequestHandler requestHandler = new RequestHandler(pluginId, feedEnvs, useLiteFetchMode,
+            useTotalMetrics);
         requestHandler.init();
 
         return requestHandler;
@@ -87,9 +103,14 @@ public class RequestHandler {
      *                 content with
      * @param feedEnvs the environment variables for each feed
      */
-    private RequestHandler(String pluginId, HashMap<String, FeedConfig> feedEnvs) {
+    private RequestHandler(String pluginId, HashMap<String, FeedConfig> feedEnvs,
+        boolean useLiteFetchMode, boolean useTotalMetrics
+    ) {
         this.pluginId = pluginId;
         this.feedEnvs = feedEnvs;
+        this.useLiteFetchMode = useLiteFetchMode;
+        this.useTotalMetrics = useTotalMetrics;
+
         SimpleModule authorModule = new SimpleModule();
         authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer());
         SimpleModule contentModule = new SimpleModule();
@@ -272,16 +293,57 @@ public class RequestHandler {
         }
 
         String encodedFields = URLEncoder.encode(
-            "alt_text,media_type,media_url,like_count,caption,timestamp,permalink,"
-                + "thumbnail_url,shares_count,saved_count,reposts_count,"
-                + "total_views_count,total_comments_count,children"
-                + "{media_url,media_type,alt_text,thumbnail_url}",
+            "alt_text,media_type,media_url,caption,timestamp,permalink," +
+                "thumbnail_url,children{media_url,media_type,alt_text,thumbnail_url}",
             StandardCharsets.UTF_8);
+
+        if (!useLiteFetchMode) {
+            encodedFields += ",shares_count,saved_count,reposts_count";
+
+            if (useTotalMetrics) {
+                encodedFields += ",total_views_count,total_comments_count";
+            } else {
+                encodedFields += ",views_count,comments_count";
+            }
+        }
+
+        if (useTotalMetrics) {
+            encodedFields += ",total_like_count";
+        } else {
+            encodedFields += ",like_count";
+        }
 
         return URI.create(String.format(
                 "%s/%s/media?access_token=%s&limit=%s%s&fields=%s",
                 baseUrl, userIds.get(feedName), accessTokenInfo.getValue(),
                 Math.min(amount, 10), afterArg, encodedFields
+            )
+        );
+    }
+
+    /**
+     * Gets the URI to fetch the desired author from.
+     * @param feedName the name of the feed whose content to retrieve
+     * @return the URI to fetch the desired author from
+     */
+    private URI getAuthorUri(String feedName) {
+        FeedConfig feedConfig = feedEnvs.get(feedName);
+
+        // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
+        // where both paths have the same args
+        String userId = (feedConfig.getLoginType() == LoginType.FACEBOOK)
+            ? userIds.get(feedName)
+            : "me";
+
+        String fields = "id,name,username,profile_picture_url";
+        if (!useLiteFetchMode) {
+            fields += ",followers_count,media_count,biography,website";
+        }
+
+        return URI.create(
+            String.format("%s/%s?access_token=%s&fields=%s",
+                getBaseUrl(feedConfig.getLoginType()), userId,
+                feedConfig.getAccessToken().getValue(), fields
             )
         );
     }
@@ -293,20 +355,7 @@ public class RequestHandler {
      * @return a {@link Mono} that emits the {@link InstagramAuthor} of the author of the desired feed
      */
     public Mono<InstagramAuthor> fetchAuthor(String feedName) {
-        FeedConfig feedConfig = feedEnvs.get(feedName);
-
-        // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
-        // where both paths have the same args
-        String userId = (feedConfig.getLoginType() == LoginType.FACEBOOK)
-            ? userIds.get(feedName)
-            : "me";
-
-        URI uri = URI.create(
-            String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url,followers_count,media_count,biography,website",
-                getBaseUrl(feedConfig.getLoginType()), userId,
-                feedConfig.getAccessToken().getValue()
-            )
-        );
+        URI uri = getAuthorUri(feedName);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {

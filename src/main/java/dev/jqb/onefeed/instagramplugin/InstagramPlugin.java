@@ -33,7 +33,7 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
      */
     public InstagramPlugin(String pluginId, ProviderConfig providerConfig) {
         super(pluginId, providerConfig);
-        this.feedEnvs = parseFeedEnvs(providerConfig);
+        this.feedEnvs = parseFeedConfigs(providerConfig);
     }
 
     public InstagramPlugin(String pluginId, InstagramTestEnv providerConfig) {
@@ -43,11 +43,16 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
 
     @Override
     public void start() {
-        this.requestHandler = RequestHandler.using(pluginId, feedEnvs);
-        this.provider = new InstagramProvider(requestHandler, Boolean.parseBoolean(
+        boolean useTotalMetricsForNormalization = Boolean.parseBoolean(
             (String)providerConfig.getPluginVars().getOrDefault(
-                "useTotalMetricsForNormalization", "false"))
-        );
+                "useTotalMetricsForNormalization", "false"));
+
+        this.requestHandler = RequestHandler.using(pluginId, feedEnvs,
+            providerConfig.isUsingLiteFetchMode(), useTotalMetricsForNormalization);
+
+        this.provider = new InstagramProvider(requestHandler,
+            providerConfig.isUsingLiteFetchMode(), useTotalMetricsForNormalization);
+
         logger.info("Instagram plugin started");
     }
 
@@ -80,13 +85,13 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
      *
      * @return the parsed configuration for each feed
      */
-    private static HashMap<String, FeedConfig> parseFeedEnvs(ProviderConfig providerConfig) {
-        logger.trace("Parsing feed variables...");
-        HashMap<String, FeedConfig> feedEnvs = new HashMap<>();
+    private static HashMap<String, FeedConfig> parseFeedConfigs(ProviderConfig providerConfig) {
+        logger.trace("Parsing feed configs...");
+        HashMap<String, FeedConfig> feedConfigs = new HashMap<>();
 
         providerConfig.getFeeds().forEach((feedName, rawFeedEnvData) -> {
-            feedEnvs.put(feedName, new FeedConfig(rawFeedEnvData));
+            feedConfigs.put(feedName, new FeedConfig(rawFeedEnvData));
         });
-        return feedEnvs;
+        return feedConfigs;
     }
 }

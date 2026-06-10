@@ -28,10 +28,12 @@ public class InstagramAuthorDeserializer extends StdDeserializer<InstagramAuthor
 
         author.setProfilePictureUrl(root.get("profile_picture_url").asString());
         author.setName(root.get("name").asString());
-        author.setBiography(root.get("biography").asString());
-        author.setWebsite(root.get("website").asString());
-        author.setFollowersCount(root.get("followers_count").asInt());
-        author.setMediaCount(root.get("media_count").asInt());
+
+        // Extra fields when not in lite mode
+        author.setBiography(root.path("biography").asString(null));
+        author.setWebsite(root.path("website").asString(null));
+        author.setFollowersCount(root.path("followers_count").asInt(0));
+        author.setMediaCount(root.path("media_count").asInt(0));
 
         return author;
     }

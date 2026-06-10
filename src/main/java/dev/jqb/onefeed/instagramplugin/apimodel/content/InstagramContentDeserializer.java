@@ -41,25 +41,31 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
         SourceInfo sourceInfo = new SourceInfo(null, null, idOnPlatform, url);
         InstagramContent content = new InstagramContent(sourceInfo, null, published);
 
-        // Many of these will be null, but the goal is to capture as much data as we can so
-        // users can implement their own normalized types and extract what's needed for them
+        // Never null
         content.setMediaType(MediaType.valueOf(root.get("media_type").asString()));
         content.setMediaUrl(root.get("media_url").asString());
-        content.setCaption(root.get("caption").asString(null));
+        content.setCaption(root.get("caption").asString());
 
+        // Null if no alt text provided
         content.setAltText(root.path("alt_text").asString(null));
+
+        // Null if not a video
         content.setThumbnailUrl(root.path("thumbnail_url").asString(null));
 
-        content.setLikeCount(root.path("like_count").asInt(0));
+        // One per pair will be null depending on the desired type of metric (total or non-total)
+        content.setLikeCount(root.get("like_count").asInt(0));
         content.setTotalLikeCount(root.path("total_like_count").asInt(0));
-        content.setSharesCount(root.path("shares_count").asInt(0));
-        content.setSavedCount(root.path("saved_count").asInt(0));
-        content.setRepostsCount(root.path("reposts_count").asInt(0));
         content.setCommentsCount(root.path("comments_count").asInt(0));
         content.setTotalCommentsCount(root.path("total_comments_count").asInt(0));
         content.setViewCount(root.path("views_count").asInt(0));
         content.setTotalViewsCount(root.path("total_views_count").asInt(0));
 
+        // Null if in lite mode
+        content.setSharesCount(root.path("shares_count").asInt(0));
+        content.setSavedCount(root.path("saved_count").asInt(0));
+        content.setRepostsCount(root.path("reposts_count").asInt(0));
+
+        // Null if the post is just a single piece of media
         if (root.has("children")) {
             content.setChildren(ctxt.readValue(root.path("children")
                     .path("data").traverse(ctxt),

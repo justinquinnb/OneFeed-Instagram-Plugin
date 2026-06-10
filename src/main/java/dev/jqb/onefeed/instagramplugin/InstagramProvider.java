@@ -12,6 +12,8 @@ import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorNormalizer;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentNormalizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -31,9 +33,12 @@ public class InstagramProvider implements AutoProvider<InstagramContent, Instagr
      * Constructs a new {@code InstagramProvider}
      * @param requestHandler the handler used to actually make the API requests
      */
-    public InstagramProvider(RequestHandler requestHandler, boolean useTotalMetricsForNormalization) {
+    public InstagramProvider(RequestHandler requestHandler,
+        boolean useLiteMode, boolean useTotalMetricsForNormalization
+    ) {
         this.requestHandler = requestHandler;
-        this.contentNormalizer = new InstagramContentNormalizer(useTotalMetricsForNormalization);
+        this.contentNormalizer = new InstagramContentNormalizer(
+            !useLiteMode && useTotalMetricsForNormalization);
         this.authorNormalizer = new InstagramAuthorNormalizer();
     }
 

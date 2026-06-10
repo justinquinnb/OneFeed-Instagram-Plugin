@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagramplugin.apimodel;
+package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
 import java.util.List;
 import lombok.Getter;

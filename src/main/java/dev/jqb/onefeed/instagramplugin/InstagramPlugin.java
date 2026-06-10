@@ -5,7 +5,8 @@ import dev.jqb.onefeed.api.provider.ProviderConfig;
 import dev.jqb.onefeed.api.plugin.FixedDelayTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTask;
 import dev.jqb.onefeed.api.plugin.ScheduledTasks;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
 import java.time.Duration;
@@ -63,7 +64,7 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
 
     @Override
     public List<Class<?>> getClassesToDeserialize() {
-        return List.of(InstagramContent.class);
+        return List.of(InstagramContent.class, InstagramAuthor.class);
     }
 
     @Override

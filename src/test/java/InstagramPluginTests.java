@@ -1,10 +1,13 @@
+import dev.jqb.onefeed.api.author.PlatformAuthor;
 import dev.jqb.onefeed.api.feed.SourceInfo;
 import dev.jqb.onefeed.api.impl.Media;
+import dev.jqb.onefeed.api.impl.OneFeedAuthor;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
 import dev.jqb.onefeed.instagramplugin.InstagramPlugin;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContentChild;
-import dev.jqb.onefeed.instagramplugin.apimodel.MediaType;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentChild;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.MediaType;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.InstagramTestEnv;
@@ -56,11 +59,8 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
     }
 
     @Override
-    protected InstagramContent getNormalizerInput() {
-        SourceInfo source = new SourceInfo("test-instagram-provider-id",
-            "test-feed-name", "testID123",
-            "https://www.instagram.com/p/abcdefghijk"
-        );
+    protected InstagramContent getContentNormalizerInput() {
+        SourceInfo source = getSampleSourceInfo();
         InstagramContent content = new InstagramContent(source, "testCursor123",
             Instant.ofEpochMilli(1234567890L));
 
@@ -86,8 +86,8 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
     }
 
     @Override
-    protected OneFeedContent getExpectedNormalizerOutput() {
-        InstagramContent content = getNormalizerInput();
+    protected OneFeedContent getExpectedContentNormalizerOutput() {
+        InstagramContent content = getContentNormalizerInput();
         OneFeedContent ofc = new OneFeedContent(content.getSource(), "testCursor123",
             content.getPublished(), content.getCaption());
         ofc.setPrimaryReactionCount(content.getLikeCount());
@@ -116,5 +116,37 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
         ofc.setMedia(mediaList);
 
         return ofc;
+    }
+
+    @Override
+    protected InstagramAuthor getAuthorNormalizerInput() {
+        SourceInfo source = getSampleSourceInfo();
+        InstagramAuthor author = new InstagramAuthor(source, "testUsername");
+        author.setProfilePictureUrl("https://scontent-atl3-2.xx.fbcdn.net/v/t51.2885-15/472386579_1307793557027997_7501062276520195543_n.jpg");
+        author.setName("Test Author Name");
+        author.setBiography("Test biography");
+        author.setWebsite("https://www.jqb.dev");
+        author.setFollowersCount(123456);
+        author.setMediaCount(123);
+
+        return author;
+    }
+
+    @Override
+    protected OneFeedAuthor getExpectedAuthorNormalizerOutput() {
+        InstagramAuthor author = getAuthorNormalizerInput();
+        return new OneFeedAuthor(author.getSource(), author.getHandle(),
+            author.getName(), author.getProfilePictureUrl());
+    }
+
+    /**
+     * Gets sample source info for testing
+     * @return a sample {@link SourceInfo} object for testing
+     */
+    private SourceInfo getSampleSourceInfo() {
+        return new SourceInfo("test-instagram-provider-id",
+            "test-feed-name", "testID123",
+            "https://www.instagram.com/p/abcdefghijk"
+        );
     }
 }

@@ -2,11 +2,11 @@ package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.api.content.PlatformCursor;
 import dev.jqb.onefeed.api.feed.SourceInfo;
-import dev.jqb.onefeed.api.impl.Profile;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContentDeserializer;
-import dev.jqb.onefeed.instagramplugin.apimodel.PageResult;
-import dev.jqb.onefeed.instagramplugin.apimodel.ProfileDeserializer;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentDeserializer;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.PageResult;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorDeserializer;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
@@ -90,13 +90,13 @@ public class RequestHandler {
     private RequestHandler(String pluginId, HashMap<String, FeedConfig> feedEnvs) {
         this.pluginId = pluginId;
         this.feedEnvs = feedEnvs;
-        SimpleModule profileModule = new SimpleModule();
-        profileModule.addDeserializer(Profile.class, new ProfileDeserializer());
+        SimpleModule authorModule = new SimpleModule();
+        authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer());
         SimpleModule contentModule = new SimpleModule();
         contentModule.addDeserializer(InstagramContent.class, new InstagramContentDeserializer());
 
         this.mapper = JsonMapper.builder()
-            .addModules(profileModule, contentModule)
+            .addModules(authorModule, contentModule)
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .build();
     }
@@ -287,12 +287,12 @@ public class RequestHandler {
     }
 
     /**
-     * Fetches the profile of the author responsible for the content in feed {@code feedName}.
+     * Fetches the author responsible for the content in feed {@code feedName}.
      *
-     * @param feedName the name of the feed whose corresponding profile to retrieve
-     * @return a {@link Mono} that emits the {@link Profile} of the author of the desired feed
+     * @param feedName the name of the feed whose corresponding author data to retrieve
+     * @return a {@link Mono} that emits the {@link InstagramAuthor} of the author of the desired feed
      */
-    public Mono<Profile> fetchProfile(String feedName) {
+    public Mono<InstagramAuthor> fetchAuthor(String feedName) {
         FeedConfig feedConfig = feedEnvs.get(feedName);
 
         // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
@@ -302,7 +302,7 @@ public class RequestHandler {
             : "me";
 
         URI uri = URI.create(
-            String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url",
+            String.format("%s/%s?access_token=%s&fields=id,name,username,profile_picture_url,followers_count,media_count,biography,website",
                 getBaseUrl(feedConfig.getLoginType()), userId,
                 feedConfig.getAccessToken().getValue()
             )
@@ -310,11 +310,11 @@ public class RequestHandler {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
             .map(response -> {
-                Profile profile = mapper.readValue(response.body(), Profile.class);
-                SourceInfo source = profile.getSource();
+                InstagramAuthor author = mapper.readValue(response.body(), InstagramAuthor.class);
+                SourceInfo source = author.getSource();
                 source.setFeedName(feedName);
                 source.setProviderId(pluginId);
-                return profile;
+                return author;
             });
     }
 

@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagramplugin.apimodel;
+package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
 import dev.jqb.onefeed.api.content.PlatformContent;
 import dev.jqb.onefeed.api.feed.SourceInfo;

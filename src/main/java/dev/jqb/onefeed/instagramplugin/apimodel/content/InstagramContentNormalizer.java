@@ -1,18 +1,16 @@
-package dev.jqb.onefeed.instagramplugin;
+package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.api.content.Normalizer;
+import dev.jqb.onefeed.api.content.ContentNormalizer;
 import dev.jqb.onefeed.api.impl.Media;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContentChild;
-import dev.jqb.onefeed.instagramplugin.apimodel.MediaType;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * A normalizer for {@link InstagramContent} --> {@link OneFeedContent}
  */
-public class InstagramContentNormalizer implements Normalizer<InstagramContent, OneFeedContent> {
+public class InstagramContentNormalizer implements
+    ContentNormalizer<InstagramContent, OneFeedContent> {
 
     /**
      * Whether to use the total metrics for normalization (e.g. total_likes instead of likes).

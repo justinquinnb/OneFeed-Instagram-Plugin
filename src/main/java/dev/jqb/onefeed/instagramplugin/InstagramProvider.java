@@ -1,26 +1,31 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.api.content.Normalizer;
+import dev.jqb.onefeed.api.author.AuthorNormalizer;
+import dev.jqb.onefeed.api.content.ContentNormalizer;
 import dev.jqb.onefeed.api.content.PlatformCursor;
 import dev.jqb.onefeed.api.provider.AutoProvider;
 import dev.jqb.onefeed.api.feed.FeedUpdate;
-import dev.jqb.onefeed.api.feed.Platform;
+import dev.jqb.onefeed.api.provider.Platform;
 import dev.jqb.onefeed.api.impl.OneFeedContent;
-import dev.jqb.onefeed.api.impl.Profile;
-import dev.jqb.onefeed.instagramplugin.apimodel.InstagramContent;
+import dev.jqb.onefeed.api.impl.OneFeedAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorNormalizer;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
+import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentNormalizer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
  * A provider of Instagram content
  */
-public class InstagramProvider implements AutoProvider<InstagramContent> {
+public class InstagramProvider implements AutoProvider<InstagramContent, InstagramAuthor> {
 
     /**
      * The handler used to actually make the API requests
      */
     private final RequestHandler requestHandler;
-    private final Normalizer<InstagramContent, OneFeedContent> normalizer;
+    private final ContentNormalizer<InstagramContent, OneFeedContent> contentNormalizer;
+    private final AuthorNormalizer<InstagramAuthor, OneFeedAuthor> authorNormalizer;
 
     /**
      * Constructs a new {@code InstagramProvider}
@@ -28,7 +33,8 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
      */
     public InstagramProvider(RequestHandler requestHandler, boolean useTotalMetricsForNormalization) {
         this.requestHandler = requestHandler;
-        this.normalizer = new InstagramContentNormalizer(useTotalMetricsForNormalization);
+        this.contentNormalizer = new InstagramContentNormalizer(useTotalMetricsForNormalization);
+        this.authorNormalizer = new InstagramAuthorNormalizer();
     }
 
     @Override
@@ -44,8 +50,13 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Normalizer<InstagramContent, OneFeedContent> getNormalizer() {
-        return normalizer;
+    public ContentNormalizer<InstagramContent, OneFeedContent> getContentNormalizer() {
+        return contentNormalizer;
+    }
+
+    @Override
+    public AuthorNormalizer<InstagramAuthor, OneFeedAuthor> getAuthorNormalizer() {
+        return authorNormalizer;
     }
 
     @Override
@@ -54,12 +65,12 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Mono<Profile> fetchProfile(String feedName) {
-        return requestHandler.fetchProfile(feedName);
+    public Mono<InstagramAuthor> fetchAuthor(String feedName) {
+        return requestHandler.fetchAuthor(feedName);
     }
 
     @Override
-    public FeedUpdate<InstagramContent> handleWebhookNotif(String notifPayload) {
+    public FeedUpdate<InstagramContent, InstagramAuthor> handleWebhookNotif(String notifPayload) {
         return null;
     }
 }

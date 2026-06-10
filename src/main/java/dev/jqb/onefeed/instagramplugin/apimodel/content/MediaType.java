@@ -1,4 +1,4 @@
-package dev.jqb.onefeed.instagramplugin.apimodel;
+package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
 /**
  * The type of media a piece of Instagram content contains

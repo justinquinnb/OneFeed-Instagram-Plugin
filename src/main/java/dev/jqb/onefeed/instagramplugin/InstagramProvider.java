@@ -54,7 +54,7 @@ public class InstagramProvider implements AutoProvider<InstagramContent> {
     }
 
     @Override
-    public Mono<Profile> getProfile(String feedName) {
+    public Mono<Profile> fetchProfile(String feedName) {
         return requestHandler.fetchProfile(feedName);
     }
 

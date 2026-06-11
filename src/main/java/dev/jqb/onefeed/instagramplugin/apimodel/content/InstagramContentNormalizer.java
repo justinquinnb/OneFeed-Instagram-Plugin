@@ -1,8 +1,8 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.api.content.ContentNormalizer;
-import dev.jqb.onefeed.api.impl.Media;
-import dev.jqb.onefeed.api.impl.OneFeedContent;
+import dev.jqb.onefeed.core.content.ContentNormalizer;
+import dev.jqb.onefeed.core.impl.Media;
+import dev.jqb.onefeed.core.impl.OneFeedContent;
 import java.util.ArrayList;
 import java.util.List;
 

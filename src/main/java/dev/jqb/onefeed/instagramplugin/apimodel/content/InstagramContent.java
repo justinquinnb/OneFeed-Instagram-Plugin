@@ -1,7 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.api.content.PlatformContent;
-import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.core.content.PlatformContent;
+import dev.jqb.onefeed.core.feed.SourceInfo;
 import java.time.Instant;
 import java.util.List;
 import lombok.Getter;

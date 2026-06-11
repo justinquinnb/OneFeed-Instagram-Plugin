@@ -1,7 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.api.author.AuthorNormalizer;
-import dev.jqb.onefeed.api.impl.OneFeedAuthor;
+import dev.jqb.onefeed.core.author.AuthorNormalizer;
+import dev.jqb.onefeed.core.impl.OneFeedAuthor;
 
 /**
  * A normalizer for {@link InstagramAuthor} --> {@link OneFeedAuthor}

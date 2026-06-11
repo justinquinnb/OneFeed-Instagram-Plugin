@@ -1,13 +1,13 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.api.author.AuthorNormalizer;
-import dev.jqb.onefeed.api.content.ContentNormalizer;
-import dev.jqb.onefeed.api.content.PlatformCursor;
-import dev.jqb.onefeed.api.provider.AutoProvider;
-import dev.jqb.onefeed.api.feed.FeedUpdate;
-import dev.jqb.onefeed.api.provider.Platform;
-import dev.jqb.onefeed.api.impl.OneFeedContent;
-import dev.jqb.onefeed.api.impl.OneFeedAuthor;
+import dev.jqb.onefeed.core.author.AuthorNormalizer;
+import dev.jqb.onefeed.core.content.ContentNormalizer;
+import dev.jqb.onefeed.core.content.PlatformCursor;
+import dev.jqb.onefeed.core.provider.AutoProvider;
+import dev.jqb.onefeed.core.feed.FeedUpdate;
+import dev.jqb.onefeed.core.provider.Platform;
+import dev.jqb.onefeed.core.impl.OneFeedContent;
+import dev.jqb.onefeed.core.impl.OneFeedAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorNormalizer;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;

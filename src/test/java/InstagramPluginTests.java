@@ -1,8 +1,7 @@
-import dev.jqb.onefeed.api.author.PlatformAuthor;
-import dev.jqb.onefeed.api.feed.SourceInfo;
-import dev.jqb.onefeed.api.impl.Media;
-import dev.jqb.onefeed.api.impl.OneFeedAuthor;
-import dev.jqb.onefeed.api.impl.OneFeedContent;
+import dev.jqb.onefeed.core.feed.SourceInfo;
+import dev.jqb.onefeed.core.impl.Media;
+import dev.jqb.onefeed.core.impl.OneFeedAuthor;
+import dev.jqb.onefeed.core.impl.OneFeedContent;
 import dev.jqb.onefeed.instagramplugin.InstagramPlugin;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;

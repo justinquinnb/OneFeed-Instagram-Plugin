@@ -1,7 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.api.author.PlatformAuthor;
-import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.core.author.PlatformAuthor;
+import dev.jqb.onefeed.core.feed.SourceInfo;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

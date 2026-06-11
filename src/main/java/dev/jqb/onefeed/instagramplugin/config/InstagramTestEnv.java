@@ -1,6 +1,6 @@
 package dev.jqb.onefeed.instagramplugin.config;
 
-import dev.jqb.onefeed.api.provider.ProviderConfig;
+import dev.jqb.onefeed.core.provider.ProviderConfig;
 import java.util.HashMap;
 import lombok.Getter;
 

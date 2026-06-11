@@ -1,10 +1,10 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.api.provider.OneFeedProviderPlugin;
-import dev.jqb.onefeed.api.provider.ProviderConfig;
-import dev.jqb.onefeed.api.plugin.FixedDelayTask;
-import dev.jqb.onefeed.api.plugin.ScheduledTask;
-import dev.jqb.onefeed.api.plugin.ScheduledTasks;
+import dev.jqb.onefeed.core.provider.OneFeedProviderPlugin;
+import dev.jqb.onefeed.core.provider.ProviderConfig;
+import dev.jqb.onefeed.core.plugin.FixedDelayTask;
+import dev.jqb.onefeed.core.plugin.ScheduledTask;
+import dev.jqb.onefeed.core.plugin.ScheduledTasks;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.config.FeedConfig;

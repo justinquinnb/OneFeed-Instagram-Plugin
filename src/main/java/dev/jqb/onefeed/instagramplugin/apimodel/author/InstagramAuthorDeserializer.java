@@ -1,6 +1,6 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.api.feed.SourceInfo;
+import dev.jqb.onefeed.core.feed.SourceInfo;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;

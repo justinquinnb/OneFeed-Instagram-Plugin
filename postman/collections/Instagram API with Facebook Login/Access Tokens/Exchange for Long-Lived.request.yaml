@@ -1,5 +1,10 @@
 $kind: http-request
-name: Exchange for Long-Lived
-url: ""
+url: https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id={{fb_app_id}}&client_secret={{fb_app_secret}}&fb_exchange_token={{fb_access_token}}
 method: GET
+queryParams:
+  grant_type: fb_exchange_token
+  client_id: "{{fb_app_id}}"
+  client_secret: "{{fb_app_secret}}"
+  fb_exchange_token: "{{fb_access_token}}"
+examples: .resources/Exchange for Long-Lived.resources/examples
 order: 1778796547390

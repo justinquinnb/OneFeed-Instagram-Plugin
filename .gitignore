@@ -40,5 +40,7 @@ build/
 /.idea
 
 postman/.dependencies/
+postman/mocks
 .env
 import-to-onefeed.sh
+*.example.yaml

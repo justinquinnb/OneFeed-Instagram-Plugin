@@ -1,5 +1,4 @@
 $kind: http-request
-name: Author
 url: https://graph.facebook.com/:insta_user_id?access_token={{fb_access_token}}&fields=id,name,username,profile_picture_url,followers_count,media_count,biography,website
 method: GET
 queryParams:
@@ -7,4 +6,5 @@ queryParams:
   fields: id,name,username,profile_picture_url,followers_count,media_count,biography,website
 pathVariables:
   insta_user_id: "{{fb_ig_user_id}}"
+examples: .resources/Author.resources/examples
 order: 3591582942527631

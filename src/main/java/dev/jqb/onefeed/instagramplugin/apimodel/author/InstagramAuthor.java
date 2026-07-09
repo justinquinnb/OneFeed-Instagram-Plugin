@@ -1,7 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.core.author.PlatformAuthor;
-import dev.jqb.onefeed.core.feed.SourceInfo;
+import dev.jqb.onefeed.core.actor.Actor;
+import dev.jqb.onefeed.core.platform.ExternalRef;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -14,7 +14,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString(callSuper = true)
-public class InstagramAuthor extends PlatformAuthor {
+public class InstagramAuthor extends Actor {
     private String name;
     private String profilePictureUrl;
 
@@ -23,7 +23,7 @@ public class InstagramAuthor extends PlatformAuthor {
     private int mediaCount;
     private String website;
 
-    public InstagramAuthor(SourceInfo source, String username) {
-        super(source, username);
+    public InstagramAuthor(String providerId, ExternalRef externalRef, String username) {
+        super(providerId, externalRef, username);
     }
 }

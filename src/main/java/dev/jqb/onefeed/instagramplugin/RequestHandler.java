@@ -112,7 +112,7 @@ public class RequestHandler {
         this.useTotalMetrics = useTotalMetrics;
 
         SimpleModule authorModule = new SimpleModule();
-        authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer());
+        authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer(pluginId));
         SimpleModule contentModule = new SimpleModule();
         contentModule.addDeserializer(InstagramContent.class, new InstagramContentDeserializer());
 

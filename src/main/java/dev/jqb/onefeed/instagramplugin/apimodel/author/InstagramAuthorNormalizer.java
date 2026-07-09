@@ -1,17 +1,18 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.core.author.AuthorNormalizer;
-import dev.jqb.onefeed.core.impl.OneFeedAuthor;
+import dev.jqb.onefeed.core.actor.ActorTransformer;
+import dev.jqb.onefeed.core.actor.OneFeedActor;
 
 /**
- * A normalizer for {@link InstagramAuthor} --> {@link OneFeedAuthor}
+ * A normalizer for {@link InstagramAuthor} --> {@link OneFeedActor}
  */
-public class InstagramAuthorNormalizer implements AuthorNormalizer<InstagramAuthor, OneFeedAuthor> {
+public class InstagramAuthorNormalizer implements ActorTransformer<InstagramAuthor, OneFeedActor> {
 
     @Override
-    public OneFeedAuthor normalize(InstagramAuthor author) {
-        OneFeedAuthor ofa = new OneFeedAuthor();
-        ofa.setSource(author.getSource());
+    public OneFeedActor transform(InstagramAuthor author) {
+        OneFeedActor ofa = new OneFeedActor();
+        ofa.setExternalRef(author.getExternalRef());
+        ofa.setProviderId(author.getProviderId());
         ofa.setName(author.getName());
         ofa.setHandle(author.getHandle());
         ofa.setProfilePicSrc(author.getProfilePictureUrl());

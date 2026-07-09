@@ -1,7 +1,8 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.core.content.PlatformContent;
-import dev.jqb.onefeed.core.feed.SourceInfo;
+import dev.jqb.onefeed.core.content.Content;
+import dev.jqb.onefeed.core.feed.FeedId;
+import dev.jqb.onefeed.core.platform.ExternalRef;
 import java.time.Instant;
 import java.util.List;
 import lombok.Getter;
@@ -17,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 @Getter
 @Setter
 @ToString(callSuper = true)
-public class InstagramContent extends PlatformContent {
+public class InstagramContent extends Content {
     private MediaType mediaType;
     private String mediaUrl;
     private String caption;
@@ -46,8 +47,14 @@ public class InstagramContent extends PlatformContent {
 
     private List<InstagramContentChild> children;
 
-    public InstagramContent(SourceInfo source, @Nullable String nextPageCursor, Instant published) {
-        super(source, nextPageCursor, published);
+    public InstagramContent(
+        FeedId feedId,
+        ExternalRef externalRef,
+        @Nullable String nextPageCursor,
+        Instant published,
+        List<String> authorIds
+    ) {
+        super(feedId, externalRef, nextPageCursor, published, authorIds);
     }
 
     /**
@@ -58,7 +65,7 @@ public class InstagramContent extends PlatformContent {
      * {@link InstagramContentChild}
      */
     public InstagramContentChild getPrimaryMediaAsChild() {
-        return new InstagramContentChild(mediaType, mediaUrl, source.getIdOnPlatform(),
+        return new InstagramContentChild(mediaType, mediaUrl, externalRef.id(),
             altText, thumbnailUrl);
     }
 }

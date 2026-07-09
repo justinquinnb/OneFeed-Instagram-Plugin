@@ -1,6 +1,8 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
+import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.core.feed.SourceInfo;
+import dev.jqb.onefeed.core.platform.ExternalRef;
 import java.time.Instant;
 import java.util.List;
 import tools.jackson.core.JacksonException;
@@ -14,9 +16,11 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  * A custom {@link InstagramContent} deserializer from Instagram media API page responses
  */
 public class InstagramContentDeserializer extends StdDeserializer<InstagramContent> {
+    private String providerId;
 
-    public InstagramContentDeserializer() {
+    public InstagramContentDeserializer(String providerId) {
         super(InstagramContent.class);
+        this.providerId = providerId;
     }
 
     @Override
@@ -37,9 +41,11 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
             published = Instant.parse(adjTimestamp);
         }
 
-        // The provider sets the cursor and feedId later...
-        SourceInfo sourceInfo = new SourceInfo(null, null, idOnPlatform, url);
-        InstagramContent content = new InstagramContent(sourceInfo, null, published);
+        // The provider sets the cursor and feed name later...
+        ExternalRef externalRef = new ExternalRef(idOnPlatform, url);
+        FeedId feedId = new FeedId(providerId, "");
+        InstagramContent content = new InstagramContent(
+            feedId, externalRef, null, published, authorIds); // TODO look at Insta spec for author IDs
 
         // Never null
         content.setMediaType(MediaType.valueOf(root.get("media_type").asString()));

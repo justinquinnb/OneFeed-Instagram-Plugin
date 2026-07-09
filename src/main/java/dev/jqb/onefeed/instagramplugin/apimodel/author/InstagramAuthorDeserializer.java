@@ -1,6 +1,6 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
-import dev.jqb.onefeed.core.feed.SourceInfo;
+import dev.jqb.onefeed.core.platform.ExternalRef;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
@@ -12,19 +12,21 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  */
 public class InstagramAuthorDeserializer extends StdDeserializer<InstagramAuthor> {
 
-    public InstagramAuthorDeserializer() {
+    private String providerId;
+
+    public InstagramAuthorDeserializer(String providerId) {
         super(InstagramAuthor.class);
     }
 
     @Override
-    public InstagramAuthor deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
+    public InstagramAuthor deserialize(JsonParser p, DeserializationContext ctx) throws JacksonException {
         JsonNode root = p.readValueAsTree();
         String id = root.get("id").asString();
         String handle = root.get("username").asString();
         String feedUrl = String.format("https://instagram.com/%s", handle);
 
-        SourceInfo source = new SourceInfo(null, null, id, feedUrl);
-        InstagramAuthor author = new InstagramAuthor(source, handle);
+        ExternalRef externalRef = new ExternalRef(feedUrl, id);
+        InstagramAuthor author = new InstagramAuthor(providerId, externalRef, handle);
 
         author.setProfilePictureUrl(root.get("profile_picture_url").asString());
         author.setName(root.get("name").asString());

@@ -1,8 +1,10 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.core.content.ContentNormalizer;
-import dev.jqb.onefeed.core.impl.Media;
-import dev.jqb.onefeed.core.impl.OneFeedContent;
+import dev.jqb.onefeed.core.content.ContentTransformer;
+import dev.jqb.onefeed.core.content.OneFeedContent;
+import dev.jqb.onefeed.core.content.OneFeedMedia;
+import dev.jqb.onefeed.core.platform.ExternalRef;
+import jakarta.activation.MimeType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +12,7 @@ import java.util.List;
  * A normalizer for {@link InstagramContent} --> {@link OneFeedContent}
  */
 public class InstagramContentNormalizer implements
-    ContentNormalizer<InstagramContent, OneFeedContent> {
+    ContentTransformer<InstagramContent, OneFeedContent> {
 
     /**
      * Whether to use the total metrics for normalization (e.g. total_likes instead of likes).
@@ -24,12 +26,13 @@ public class InstagramContentNormalizer implements
     }
 
     @Override
-    public OneFeedContent normalize(InstagramContent content) {
+    public OneFeedContent transform(InstagramContent content) {
         OneFeedContent ofc = new OneFeedContent();
 
         ofc.setPublished(content.getPublished());
-        ofc.setSource(content.getSource());
-        ofc.setNextPageCursor(content.getNextPageCursor());
+        ofc.setFeedId(content.getFeedId());
+        ofc.setExternalRef(content.getExternalRef());
+        ofc.setNextPageCursor(content.getNextPageCursor().get());
 
         ofc.setBody(content.getCaption());
         if (useTotalMetricsForNormalization) {
@@ -45,32 +48,32 @@ public class InstagramContentNormalizer implements
             children.add(content.getPrimaryMediaAsChild());
         }
 
-        ofc.setMedia(convertToMedia(content.getSource().getUrlOnPlatform(), children));
+        ofc.setMedia(convertToMedia(content.getExternalRef().url(), children));
 
         return ofc;
     }
 
     /**
-     * Converts the provided {@code children} into a list of {@link Media} objects, preserving the
+     * Converts the provided {@code children} into a list of {@link OneFeedMedia} objects, preserving the
      * original order.
      *
      * @param postLink the link to the Instagram post, which is used to derive the link to each
-     *                 {@link Media} object in the context of the post
+     *                 {@link OneFeedMedia} object in the context of the post
      * @param children the {@link InstagramContentChild}s to convert
      *
-     * @return a list of {@link Media} objects representing the {@code children}, preserving their
+     * @return a list of {@link OneFeedMedia} objects representing the {@code children}, preserving their
      * original order
      */
-    public static List<Media> convertToMedia(String postLink, List<InstagramContentChild> children) {
-        List<Media> media = new ArrayList<>();
+    public static List<OneFeedMedia> convertToMedia(String postLink, List<InstagramContentChild> children) {
+        List<OneFeedMedia> media = new ArrayList<>();
 
         int i = 1;
         for (InstagramContentChild child : children) {
-            Media.MediaType ofMediaType = (child.getMediaType() == MediaType.VIDEO) ?
-                Media.MediaType.VIDEO : Media.MediaType.IMAGE;
-            String mediaUrl = postLink + "?img_index=" + i; // It's img even for videos
+            MimeType ofMediaType = (child.getMediaType() == MediaType.VIDEO) ?
+                MimeType.IMAGE : MimeType.VIDEO; // TODO read docs to figure out
+            String mediaUrl = postLink + "?img_index=" + i; // It's img_index even for videos
 
-            Media mediaItem = new Media(ofMediaType, mediaUrl);
+            OneFeedMedia mediaItem = new OneFeedMedia(ofMediaType, mediaUrl);
             mediaItem.setAltText(child.getAltText());
             mediaItem.setThumbnailSrc(child.getThumbnailUrl());
             mediaItem.setSrc(child.getMediaUrl());

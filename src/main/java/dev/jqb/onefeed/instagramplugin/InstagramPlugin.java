@@ -1,6 +1,7 @@
 package dev.jqb.onefeed.instagramplugin;
 
 import dev.jqb.onefeed.core.provider.OneFeedProviderPlugin;
+import dev.jqb.onefeed.core.provider.Provider;
 import dev.jqb.onefeed.core.provider.ProviderConfig;
 import dev.jqb.onefeed.core.plugin.FixedDelayTask;
 import dev.jqb.onefeed.core.plugin.ScheduledTask;
@@ -63,7 +64,7 @@ public class InstagramPlugin extends OneFeedProviderPlugin implements ScheduledT
     }
 
     @Override
-    public InstagramProvider getProvider() {
+    public Provider<InstagramContent, InstagramAuthor> getProvider() {
         return provider;
     }
 

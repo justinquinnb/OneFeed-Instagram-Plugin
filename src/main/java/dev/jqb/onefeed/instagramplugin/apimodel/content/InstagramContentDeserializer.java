@@ -1,8 +1,7 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
-import dev.jqb.onefeed.core.feed.FeedId;
-import dev.jqb.onefeed.core.feed.SourceInfo;
 import dev.jqb.onefeed.core.platform.ExternalRef;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramCollaborator;
 import java.time.Instant;
 import java.util.List;
 import tools.jackson.core.JacksonException;
@@ -43,9 +42,24 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
 
         // The provider sets the cursor and feed name later...
         ExternalRef externalRef = new ExternalRef(idOnPlatform, url);
-        FeedId feedId = new FeedId(providerId, "");
+
+        // Null if the post is just a single piece of media
+        List<InstagramCollaborator> collaborators = null;
+        if (root.has("collaborators")) {
+            collaborators = ctxt.readValue(root.path("children")
+                    .path("data").traverse(ctxt),
+                new TypeReference<List<InstagramCollaborator>>() {});
+
+            collaborators = collaborators.stream()
+                .filter(InstagramCollaborator::hasAccepted)
+                .toList();
+        }
+
+        String authorId = root.path("owner").path("id").asString();
+
         InstagramContent content = new InstagramContent(
-            feedId, externalRef, null, published, authorIds); // TODO look at Insta spec for author IDs
+            null, externalRef, null, published, authorId, collaborators);
+        // FeedID will be set later by the request handler. Can't be set here bc it's a record class
 
         // Never null
         content.setMediaType(MediaType.valueOf(root.get("media_type").asString()));
@@ -59,7 +73,7 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
         content.setThumbnailUrl(root.path("thumbnail_url").asString(null));
 
         // One per pair will be null depending on the desired type of metric (total or non-total)
-        content.setLikeCount(root.get("like_count").asInt(0));
+        content.setLikeCount(root.path("like_count").asInt(0));
         content.setTotalLikeCount(root.path("total_like_count").asInt(0));
         content.setCommentsCount(root.path("comments_count").asInt(0));
         content.setTotalCommentsCount(root.path("total_comments_count").asInt(0));

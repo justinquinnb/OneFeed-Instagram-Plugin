@@ -1,16 +1,17 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.core.content.PlatformCursor;
-import dev.jqb.onefeed.core.feed.SourceInfo;
-import dev.jqb.onefeed.core.impl.OneFeedAuthor;
-import dev.jqb.onefeed.core.impl.OneFeedContent;
+import dev.jqb.onefeed.core.feed.FeedCursor;
+import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorDeserializer;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramCollaborator;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramCollaboratorDeserializer;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentDeserializer;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.PageResult;
-import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorDeserializer;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
-import dev.jqb.onefeed.instagramplugin.config.FeedConfig;
+import dev.jqb.onefeed.instagramplugin.config.IgFeedConfig;
+import dev.jqb.onefeed.instagramplugin.config.IgProviderConfig;
 import dev.jqb.onefeed.instagramplugin.config.LoginType;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -22,9 +23,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -43,14 +42,6 @@ public class RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
     private static final String API_VERSION = "v25.0";
 
-    /**
-     * A mapping of feed names to Instagram User IDs.<br><br>
-     *
-     * Importantly, User IDs are Meta App-specific. That is, the User ID of a single account will
-     * differ depending on the Meta App associated with the access token used.
-     */
-    private ConcurrentHashMap<String, String> userIds = new ConcurrentHashMap<>();
-
     private final HttpClient httpClient = HttpClient.newBuilder()
         .followRedirects(Redirect.NORMAL)
         .build();
@@ -58,102 +49,51 @@ public class RequestHandler {
     private ObjectMapper mapper;
 
     /**
-     * The ID of the plugin using this {@code RequestHandler}, for signing generated content with
+     * The ID of the provided using this {@code RequestHandler}, for signing generated content with
      */
-    private final String pluginId;
+    private final String providerId;
 
     /**
-     * The plugin's environment variables
+     * The config of the provider using this {@code RequestHandler}
      */
-    private final HashMap<String, FeedConfig> feedEnvs;
-
-    /**
-     * Whether to use lite fetching, which only requests the fields necessary to complete a
-     * {@link OneFeedAuthor} or {@link OneFeedContent} object
-     */
-    private final boolean useLiteFetchMode;
-
-    /**
-     * Whether to request total metrics for content or just the regular metrics
-     */
-    private final boolean useTotalMetrics;
-
-    /**
-     * Creates a new, initialized {@code RequestHandler} using the given {@code providerEnv}.
-     *
-     * @param pluginId the ID of the plugin using this {@code RequestHandler}, for signing generated
-     *                 content with
-     * @param feedEnvs the environment variables for each feed
-     * @return a new {@code RequestHandler} already initialized and ready for use
-     */
-    public static RequestHandler using(String pluginId, HashMap<String, FeedConfig> feedEnvs,
-        boolean useLiteFetchMode, boolean useTotalMetrics
-    ) {
-        RequestHandler requestHandler = new RequestHandler(pluginId, feedEnvs, useLiteFetchMode,
-            useTotalMetrics);
-        requestHandler.init();
-
-        return requestHandler;
-    }
+    private final IgProviderConfig providerConfig;
 
     /**
      * Constructs a new {@code RequestHandler}.
      *
-     * @param pluginId the ID of the plugin using this {@code RequestHandler}, for signing generated
+     * @param providerId the ID of the plugin using this {@code RequestHandler}, for signing generated
      *                 content with
-     * @param feedEnvs the environment variables for each feed
+     * @param providerConfig the config of the provider using this {@code RequestHandler}
      */
-    private RequestHandler(String pluginId, HashMap<String, FeedConfig> feedEnvs,
-        boolean useLiteFetchMode, boolean useTotalMetrics
-    ) {
-        this.pluginId = pluginId;
-        this.feedEnvs = feedEnvs;
-        this.useLiteFetchMode = useLiteFetchMode;
-        this.useTotalMetrics = useTotalMetrics;
+    public RequestHandler(String providerId, IgProviderConfig providerConfig) {
+        this.providerId = providerId;
+        this.providerConfig = providerConfig;
 
         SimpleModule authorModule = new SimpleModule();
-        authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer(pluginId));
+        authorModule.addDeserializer(InstagramAuthor.class, new InstagramAuthorDeserializer(providerId));
         SimpleModule contentModule = new SimpleModule();
-        contentModule.addDeserializer(InstagramContent.class, new InstagramContentDeserializer());
+        contentModule.addDeserializer(InstagramContent.class, new InstagramContentDeserializer(providerId));
+        SimpleModule collaboratorModule = new SimpleModule();
+        collaboratorModule.addDeserializer(InstagramCollaborator.class, new InstagramCollaboratorDeserializer(providerId));
 
         this.mapper = JsonMapper.builder()
-            .addModules(authorModule, contentModule)
+            .addModules(authorModule, contentModule, collaboratorModule)
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .build();
-    }
-
-    /**
-     * Initializes the request handler.
-     */
-    public void init() {
-        for (String feedName : feedEnvs.keySet()) {
-            FeedConfig feedConfig = feedEnvs.get(feedName);
-            AccessToken accessTokenInfo = feedConfig.getAccessToken();
-
-            // Get the access tokens ready
-            if (!accessTokenInfo.isLongLived() && accessTokenInfo.isExchangeForLongLived()) {
-                exchangeAccessToken(feedConfig);
-            } else if (accessTokenInfo.isLongLived() && accessTokenInfo.isAutoRefresh()){
-                refreshAccessToken(feedConfig);
-            }
-
-            // Retrieve the ID of each user
-            userIds.put(feedName, fetchInstaUserId(feedName));
-        }
     }
 
     /**
      * Fetches the given {@code amount} of most recently published content from {@code this}
      * provider's content source for the given feed.
      *
-     * @param feedName the name of the feed whose content to retrieve
+     * @param feed the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
      *
      * @return a {@link Flux} that emits the retrieved content
      */
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount) {
+    public Flux<InstagramContent> fetchRecentContent(InstagramFeed feed, int amount) {
         // Get that first page based on the cursor
-        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, null, 0);
+        Mono<PageResult> firstPage = fetchContentPage(feed, amount, null, 0);
 
         // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
         // content
@@ -161,7 +101,7 @@ public class RequestHandler {
             int usableContentCount = pageResult.getContentCountAcrossPages();
 
             if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
-                return fetchContentPage(feedName, amount - usableContentCount,
+                return fetchContentPage(feed, amount - usableContentCount,
                     pageResult.getNextPageCursor(), usableContentCount);
             }
 
@@ -169,25 +109,25 @@ public class RequestHandler {
         });
 
         // Take all the page data and chuck it into the cleaner, filtered content response
-        return collectPageContent(allPages, feedName);
+        return collectPageContent(allPages, feed);
     }
 
     /**
      * Fetches the given {@code amount} of most recently published content from {@code this}
      * provider's content source for the given feed.
      *
-     * @param feedName the name of the feed whose content to retrieve
+     * @param feed the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
      * @param cursor a cursor of format {@code <cursor>-<offset>}
      *
      * @return a {@link Flux} that emits the retrieved content
      */
-    public Flux<InstagramContent> fetchRecentContent(String feedName, int amount, PlatformCursor cursor) {
+    public Flux<InstagramContent> fetchRecentContent(InstagramFeed feed, int amount, FeedCursor cursor) {
         // Interpret the different parts of the "cursor"... the offset (location of the first piece
         // to consider within the page) and the cursor to the page itself (cursor)
 
         // Get that first page based on the cursor
-        Mono<PageResult> firstPage = fetchContentPage(feedName, amount, cursor.getCursorOnPlatform(), cursor.getOffsetFromCursor());
+        Mono<PageResult> firstPage = fetchContentPage(feed, amount, cursor.getCursorOnPlatform(), cursor.getOffsetFromCursor());
 
         // Fetch more pages of content if necessary (and possible) to fulfil the desired amount of
         // content
@@ -195,7 +135,7 @@ public class RequestHandler {
             int usableContentCount = pageResult.getContentCountAcrossPages() - cursor.getOffsetFromCursor();
 
             if (usableContentCount < amount && pageResult.getNextPageCursor() != null) {
-                return fetchContentPage(feedName, amount - usableContentCount,
+                return fetchContentPage(feed, amount - usableContentCount,
                     pageResult.getNextPageCursor(), usableContentCount);
             }
 
@@ -203,7 +143,7 @@ public class RequestHandler {
         });
 
         // Take all the page data and chuck it into the cleaner, filtered content response
-        return collectPageContent(allPages, feedName);
+        return collectPageContent(allPages, feed);
     }
 
     /**
@@ -211,21 +151,20 @@ public class RequestHandler {
      * {@link InstagramContent}.
      *
      * @param pageResults the list of {@link PageResult}s to collect
-     * @param feedName the name of the feed to which the content belongs
+     * @param feed the feed to which the content belongs
      *
      * @return a {@link Flux} emitting the retrieved content
      */
     public Flux<InstagramContent> collectPageContent(Flux<PageResult> pageResults,
-        String feedName
+        InstagramFeed feed
     ) {
         return pageResults.flatMap(page -> {
             List<InstagramContent> allContent = new ArrayList<>(page.getContent());
 
             // Complete all the content
             for (InstagramContent content : allContent) {
-                SourceInfo source = content.getSource();
-                source.setFeedName(feedName);
-                source.setProviderId(pluginId);
+                content.setFeedId(feed.getId());
+                content.getAuthorIds().set(0, feed.getAuthorId());
             }
 
             return Flux.fromIterable(allContent);
@@ -235,7 +174,7 @@ public class RequestHandler {
     /**
      * Fetches the given {@code amount} of content from the specified page of content.
      *
-     * @param feedName the name of the feed whose content to retrieve
+     * @param feed the feed whose content to retrieve
      * @param amount the target amount of content to retrieve
      * @param pageCursor the cursor of the page to retrieve, or {@code null} to retrieve the first
      *                   page
@@ -244,10 +183,10 @@ public class RequestHandler {
      *
      * @return a {@link Mono} that emits the {@link PageResult}
      */
-    private Mono<PageResult> fetchContentPage(String feedName, int amount, String pageCursor,
+    private Mono<PageResult> fetchContentPage(InstagramFeed feed, int amount, String pageCursor,
         int currentTotal
     ) {
-        URI uri = getContentUri(feedName, amount, pageCursor);
+        URI uri = getContentUri(feed, amount, pageCursor);
         logger.debug("Fetching content page from URI: {}", uri);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
 
@@ -277,15 +216,15 @@ public class RequestHandler {
     /**
      * Gets the URI to fetch the desired content from.
      *
-     * @param feedName the name of the feed whose content to retrieve
+     * @param feed the feed whose content to retrieve
      * @param amount the target amount of content to retrieve (max 10)
      * @param pageCursor the cursor of the page to retrieve, or {@code null} to retrieve the first page
      *
      * @return the URI to fetch the desired content from
      */
-    private URI getContentUri(String feedName, int amount, String pageCursor) {
-        AccessToken accessTokenInfo = feedEnvs.get(feedName).getAccessToken();
-        String baseUrl = getBaseUrl(feedEnvs.get(feedName).getLoginType());
+    private URI getContentUri(InstagramFeed feed, int amount, String pageCursor) {
+        AccessToken accessToken = feed.getConfig().getAccessToken();
+        String baseUrl = getBaseUrl(feed.getConfig().getLoginType());
 
         String afterArg = "";
         if (pageCursor != null) {
@@ -293,21 +232,22 @@ public class RequestHandler {
         }
 
         String encodedFields = URLEncoder.encode(
-            "alt_text,media_type,media_url,caption,timestamp,permalink," +
-                "thumbnail_url,children{media_url,media_type,alt_text,thumbnail_url}",
+            "alt_text,media_type,media_url,caption,timestamp,permalink,owner" +
+                "thumbnail_url,children{media_url,media_type,alt_text,thumbnail_url},"
+                + "collaborators{id,invite_status}",
             StandardCharsets.UTF_8);
 
-        if (!useLiteFetchMode) {
+        if (!providerConfig.isUsingLiteFetchMode()) {
             encodedFields += ",shares_count,saved_count,reposts_count";
 
-            if (useTotalMetrics) {
+            if (providerConfig.shouldUseTotalMetricsForNormalization()) {
                 encodedFields += ",total_views_count,total_comments_count";
             } else {
                 encodedFields += ",views_count,comments_count";
             }
         }
 
-        if (useTotalMetrics) {
+        if (providerConfig.shouldUseTotalMetricsForNormalization()) {
             encodedFields += ",total_like_count";
         } else {
             encodedFields += ",like_count";
@@ -315,7 +255,7 @@ public class RequestHandler {
 
         return URI.create(String.format(
                 "%s/%s/media?access_token=%s&limit=%s%s&fields=%s",
-                baseUrl, userIds.get(feedName), accessTokenInfo.getValue(),
+                baseUrl, feed.getAuthorId(), accessToken.getValue(),
                 Math.min(amount, 10), afterArg, encodedFields
             )
         );
@@ -323,20 +263,20 @@ public class RequestHandler {
 
     /**
      * Gets the URI to fetch the desired author from.
-     * @param feedName the name of the feed whose content to retrieve
+     * @param feed the feed whose content to retrieve
      * @return the URI to fetch the desired author from
      */
-    private URI getAuthorUri(String feedName) {
-        FeedConfig feedConfig = feedEnvs.get(feedName);
+    private URI getAuthorUri(InstagramFeed feed) {
+        IgFeedConfig feedConfig = feed.getConfig();
 
         // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
         // where both paths have the same args
         String userId = (feedConfig.getLoginType() == LoginType.FACEBOOK)
-            ? userIds.get(feedName)
+            ? feed.getAuthorId()
             : "me";
 
         String fields = "id,name,username,profile_picture_url";
-        if (!useLiteFetchMode) {
+        if (!providerConfig.isUsingLiteFetchMode()) {
             fields += ",followers_count,media_count,biography,website";
         }
 
@@ -349,44 +289,40 @@ public class RequestHandler {
     }
 
     /**
-     * Fetches the author responsible for the content in feed {@code feedName}.
+     * Fetches the author responsible for the content in feed {@code feed}.
      *
-     * @param feedName the name of the feed whose corresponding author data to retrieve
-     * @return a {@link Mono} that emits the {@link InstagramAuthor} of the author of the desired feed
+     * @param feed the feed whose corresponding author data to retrieve
+     * @return a {@link Mono} that emits the {@link InstagramAuthor} of the author of the desired
+     * feed
      */
-    public Mono<InstagramAuthor> fetchAuthor(String feedName) {
-        URI uri = getAuthorUri(feedName);
+    public Mono<InstagramAuthor> fetchAuthor(InstagramFeed feed) {
+        URI uri = getAuthorUri(feed);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
         return Mono.fromCompletionStage(httpClient.sendAsync(request, BodyHandlers.ofString()))
-            .map(response -> {
-                InstagramAuthor author = mapper.readValue(response.body(), InstagramAuthor.class);
-                SourceInfo source = author.getSource();
-                source.setFeedName(feedName);
-                source.setProviderId(pluginId);
-                return author;
-            });
+            .map(response ->
+                mapper.readValue(response.body(), InstagramAuthor.class)
+            );
     }
 
     /**
-     * Provides the Instagram User ID for the provided {@code feedName}.
+     * Provides the Instagram User ID for the provided {@code feed}.
      *
-     * @param feedName the name of the feed whose Instagram User ID to retrieve
+     * @param feed the feed whose Instagram User ID to retrieve
      *
-     * @return a {@link Mono} emitting the name of the Instagram User ID corresponding to the
-     * {@code feedName}, sourced either from the cache {@link #userIds} or from the API itself
+     * @return the Instagram User ID of the given {@code feed}'s author
      */
-    private String fetchInstaUserId(String feedName) {
-        FeedConfig feedConfig = feedEnvs.get(feedName);
+    public String fetchInstaUserId(InstagramFeed feed) {
+        IgFeedConfig feedConfig = feed.getConfig();
 
         // Get the correct URI based on the login type
         URI uri;
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
-            logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feedName);
+            logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feed.getId());
             uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
                 getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
 
         } else { // Insta login
-            logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feedName);
+            logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feed.getId());
             uri = URI.create(String.format("%s/me?access_token=%s",
                 getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         }
@@ -418,20 +354,21 @@ public class RequestHandler {
      * Exchanges the access token for a long-lived one.
      * Intentionally synchronous as it's critical initialization.
      *
-     * @param feedConfig the feed environment to whose access token to exchange for a long-lived one
+     * @param feed the whose access token to exchange for a long-lived one
      */
-    private void exchangeAccessToken(FeedConfig feedConfig) {
+    public void exchangeAccessToken(InstagramFeed feed) {
         logger.debug("Attempting to exchange access token for long-lived one...");
-        AccessToken accessToken = feedConfig.getAccessToken();
+        IgFeedConfig feedConfig = feed.getConfig();
+        AccessToken accessToken = feed.getConfig().getAccessToken();
 
         Builder requestBuilder = HttpRequest.newBuilder();
-        String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
+        String clientSecret = URLEncoder.encode(providerConfig.getAppSecret(), StandardCharsets.UTF_8);
         String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
 
         // Hit the correct endpoint with the correct args
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
-            String clientId = URLEncoder.encode(feedConfig.getAppId(), StandardCharsets.UTF_8);
+            String clientId = URLEncoder.encode(providerConfig.getAppId(), StandardCharsets.UTF_8);
 
             String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
                 getBaseUrl(feedConfig.getLoginType()), clientId, clientSecret, accessTokenStr);
@@ -471,20 +408,21 @@ public class RequestHandler {
      * Intentionally synchronous as it either occurs during critical initialization or in
      * a scheduled, OneFeed thread pool managed task.
      *
-     * @param feedConfig the feed environment whose access token to refresh
+     * @param feed the feed whose access token to refresh
      */
-    private void refreshAccessToken(FeedConfig feedConfig) {
+    public void refreshAccessToken(InstagramFeed feed) {
         logger.debug("Attempting to refresh access token...");
-        AccessToken accessToken = feedConfig.getAccessToken();
+        IgFeedConfig feedConfig = feed.getConfig();
+        AccessToken accessToken = feed.getConfig().getAccessToken();
 
         Builder requestBuilder = HttpRequest.newBuilder();
-        String clientSecret = URLEncoder.encode(feedConfig.getAppSecret(), StandardCharsets.UTF_8);
+        String clientSecret = URLEncoder.encode(providerConfig.getAppSecret(), StandardCharsets.UTF_8);
         String accessTokenStr = URLEncoder.encode(feedConfig.getAccessToken().getValue(),
             StandardCharsets.UTF_8);
 
         // Hit the correct endpoint with the correct args
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
-            String clientId = URLEncoder.encode(feedConfig.getAppId(), StandardCharsets.UTF_8);
+            String clientId = URLEncoder.encode(providerConfig.getAppId(), StandardCharsets.UTF_8);
 
             String uriString = String.format("%s/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s",
                 getBaseUrl(feedConfig.getLoginType()), clientId, clientSecret, accessTokenStr);
@@ -519,19 +457,6 @@ public class RequestHandler {
         }
 
         logger.debug("Successfully refreshed access token");
-    }
-
-    /**
-     * Refreshes the access tokens of all feeds that indicated they should be auto-refreshed.
-     * Intentionally synchronous as it's executed by the OneFeed thread pool handler.
-     */
-    public void refreshAllAccessTokens() {
-        for (String feedName : feedEnvs.keySet()) {
-            FeedConfig feedConfig = feedEnvs.get(feedName);
-            if (feedConfig.getAccessToken().isAutoRefresh() && feedConfig.getAccessToken().isLongLived()) {
-                refreshAccessToken(feedConfig);
-            }
-        }
     }
 
     /**

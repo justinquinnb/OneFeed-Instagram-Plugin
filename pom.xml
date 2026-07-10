@@ -7,7 +7,7 @@
   <groupId>dev.jqb</groupId>
   <artifactId>onefeed-instagram-plugin</artifactId>
   <name>OneFeed Instagram Plugin</name>
-  <version>0.0.2-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
 
   <properties>
     <maven.compiler.source>25</maven.compiler.source>
@@ -78,7 +78,7 @@
       <dependency>
         <groupId>dev.jqb</groupId>
         <artifactId>onefeed-bom</artifactId>
-        <version>0.0.3-SNAPSHOT</version>
+        <version>0.3.1-SNAPSHOT</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

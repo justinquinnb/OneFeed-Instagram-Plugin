@@ -16,6 +16,7 @@ public class InstagramAuthorDeserializer extends StdDeserializer<InstagramAuthor
 
     public InstagramAuthorDeserializer(String providerId) {
         super(InstagramAuthor.class);
+        this.providerId = providerId;
     }
 
     @Override

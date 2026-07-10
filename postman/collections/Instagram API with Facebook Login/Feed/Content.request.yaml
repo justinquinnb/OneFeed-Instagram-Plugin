@@ -1,17 +1,11 @@
 $kind: http-request
 name: Content
-url: https://graph.facebook.com/:fb_ig_user_id/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type,alt_text,thumbnail_url}&limit=1&access_token={{fb_access_token}}
+url: https://graph.facebook.com/:fb_ig_user_id/media?fields=alt_text,media_type,media_url,like_count,caption,timestamp,owner,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type,alt_text,thumbnail_url},collaborators{id,invite_status}&limit=1&access_token={{fb_access_token}}
 method: GET
 queryParams:
-  - key: fields
-    value: alt_text,media_type,media_url,like_count,caption,timestamp,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type,alt_text,thumbnail_url}
-  - key: limit
-    value: "1"
-  - key: access_token
-    value: "{{fb_access_token}}"
-  - key: after
-    value: ""
-    disabled: true
+  fields: alt_text,media_type,media_url,like_count,caption,timestamp,owner,permalink,thumbnail_url,shares_count,saved_count,reposts_count,total_views_count,total_comments_count,children{media_url,media_type,alt_text,thumbnail_url},collaborators{id,invite_status}
+  limit: "1"
+  access_token: "{{fb_access_token}}"
 pathVariables:
   fb_ig_user_id: "{{fb_ig_user_id}}"
 examples: .resources/Content.resources/examples

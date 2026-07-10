@@ -3,6 +3,7 @@ package dev.jqb.onefeed.instagramplugin.apimodel.content;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -11,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 @Getter
 @Setter
 @NoArgsConstructor
+@ToString
 public class InstagramContentChild {
 
     /**
@@ -46,6 +48,9 @@ public class InstagramContentChild {
      * @param mediaType the type of media (e.g. image, video)
      * @param mediaUrl the URL of the media
      * @param id the ID of the media
+     * @param altText the alt text of the media
+     * @param thumbnailUrl the URL to the video's thumbnail, included if the {@code mediaType} is
+     *                     {@link MediaType#VIDEO}
      */
     public InstagramContentChild(MediaType mediaType, String mediaUrl, String id,
         @Nullable String altText, @Nullable String thumbnailUrl

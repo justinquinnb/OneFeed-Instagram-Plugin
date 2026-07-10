@@ -3,8 +3,6 @@ package dev.jqb.onefeed.instagramplugin.apimodel.content;
 import dev.jqb.onefeed.core.content.ContentTransformer;
 import dev.jqb.onefeed.core.content.OneFeedContent;
 import dev.jqb.onefeed.core.content.OneFeedMedia;
-import dev.jqb.onefeed.core.platform.ExternalRef;
-import jakarta.activation.MimeType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +46,7 @@ public class InstagramContentNormalizer implements
             children.add(content.getPrimaryMediaAsChild());
         }
 
-        ofc.setMedia(convertToMedia(content.getExternalRef().url(), children));
+        ofc.setAttachments(convertToMedia(content.getExternalRef().url(), children));
 
         return ofc;
     }
@@ -69,14 +67,19 @@ public class InstagramContentNormalizer implements
 
         int i = 1;
         for (InstagramContentChild child : children) {
-            MimeType ofMediaType = (child.getMediaType() == MediaType.VIDEO) ?
-                MimeType.IMAGE : MimeType.VIDEO; // TODO read docs to figure out
+            String ofMediaType = (child.getMediaType() == MediaType.VIDEO) ?
+                "video/mp4" : "image/jpeg";
             String mediaUrl = postLink + "?img_index=" + i; // It's img_index even for videos
 
-            OneFeedMedia mediaItem = new OneFeedMedia(ofMediaType, mediaUrl);
-            mediaItem.setAltText(child.getAltText());
-            mediaItem.setThumbnailSrc(child.getThumbnailUrl());
-            mediaItem.setSrc(child.getMediaUrl());
+            OneFeedMedia mediaItem = OneFeedMedia
+                .builder(
+                    mediaUrl,
+                    ofMediaType,
+                    child.getMediaUrl(),
+                    child.getAltText()
+                ).thumbnailSrc(child.getThumbnailUrl()
+                ).build();
+
             media.add(mediaItem);
             i++;
         }

@@ -1,9 +1,13 @@
 package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
+import dev.jqb.onefeed.core.actor.Actor;
 import dev.jqb.onefeed.core.content.Content;
 import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.core.platform.ExternalRef;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramCollaborator;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,16 +49,31 @@ public class InstagramContent extends Content {
     private int viewCount;
     private int totalViewsCount;
 
+    // The the first child equals the primary media of this content
+    // I.e. the media contained in this object == children.getFirst()
+    // Just a quirk of the Instagram API
     private List<InstagramContentChild> children;
+
+    private String authorId;
+    private List<InstagramCollaborator> collaborators;
 
     public InstagramContent(
         FeedId feedId,
         ExternalRef externalRef,
         @Nullable String nextPageCursor,
         Instant published,
-        List<String> authorIds
+        String authorId,
+        List<InstagramCollaborator> collaborators
     ) {
-        super(feedId, externalRef, nextPageCursor, published, authorIds);
+        if (collaborators == null) {
+            collaborators = List.of();
+        }
+        ArrayList<String> authors = new ArrayList<>(collaborators.size() + 1);
+        authors.add(authorId);
+        String collabPostIdPrefix = String.format("(%s)", externalRef.id());
+        authors.addAll(
+            collaborators.stream().map(c -> collabPostIdPrefix + c.getExternalRef().id()).toList());
+        super(feedId, externalRef, nextPageCursor, published, authors);
     }
 
     /**

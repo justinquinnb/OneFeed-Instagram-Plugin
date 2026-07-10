@@ -4,24 +4,28 @@ import dev.jqb.onefeed.core.actor.ActorTransformer;
 import dev.jqb.onefeed.core.actor.OneFeedActor;
 import dev.jqb.onefeed.core.content.ContentTransformer;
 import dev.jqb.onefeed.core.content.OneFeedContent;
-import dev.jqb.onefeed.core.feed.Feed;
+import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.core.feed.FeedUpdate;
 import dev.jqb.onefeed.core.platform.Platform;
-import dev.jqb.onefeed.core.provider.Provider;
 import dev.jqb.onefeed.core.provider.WebhookEnabledProvider;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorNormalizer;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContentNormalizer;
+import dev.jqb.onefeed.instagramplugin.config.IgProviderConfig;
+import java.util.ArrayList;
 import java.util.List;
-import reactor.core.publisher.Flux;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
  * A provider of Instagram content
  */
-public class InstagramProvider extends Provider<InstagramContent, InstagramAuthor> implements
-    WebhookEnabledProvider {
+public class InstagramProvider extends WebhookEnabledProvider<InstagramContent, InstagramAuthor> {
+
+    private static final Logger logger = LoggerFactory.getLogger(InstagramProvider.class);
 
     /**
      * The handler used to actually make the API requests
@@ -29,32 +33,39 @@ public class InstagramProvider extends Provider<InstagramContent, InstagramAutho
     private final RequestHandler requestHandler;
     private final ContentTransformer<InstagramContent, OneFeedContent> contentNormalizer;
     private final ActorTransformer<InstagramAuthor, OneFeedActor> authorNormalizer;
-    private List<InstagramFeed> feeds;
+    private final List<InstagramFeed> feeds = new ArrayList<>();
+    private ConcurrentHashMap<String, InstagramFeed> userFeeds = new ConcurrentHashMap<>();
 
     /**
      * Constructs a new {@code InstagramProvider}
      *
      * @param id the unique ID assigned to the provider
+     * @param config the configuration the provider is running with
      * @param requestHandler the handler used to actually make the API requests
-     * @param useLiteMode whether to request only the bare minimum fields to complete
-     *                    {@link OneFeedActor} and {@link OneFeedContent} objects from the API
-     * @param useTotalMetricsForNormalization whether to use "total" style metrics for content
      *
      * @see <a href="https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/">Instagram API Docs</a>
      */
-    public InstagramProvider(String id, RequestHandler requestHandler,
-        boolean useLiteMode, boolean useTotalMetricsForNormalization
-    ) {
+    public InstagramProvider(String id, IgProviderConfig config, RequestHandler requestHandler) {
         super(id);
         this.requestHandler = requestHandler;
+        config.getIgFeedConfigs().forEach((feedName, feedConfig) -> {
+            FeedId feedId = new FeedId(id, feedName);
+            this.feeds.add(new InstagramFeed(feedId, feedConfig, requestHandler));
+        });
+
         this.contentNormalizer = new InstagramContentNormalizer(
-            !useLiteMode && useTotalMetricsForNormalization);
+            !config.isUsingLiteFetchMode() &&
+                config.shouldUseTotalMetricsForNormalization());
         this.authorNormalizer = new InstagramAuthorNormalizer();
     }
 
+    public void init() {
+        this.feeds.forEach(InstagramFeed::init);
+    }
+
     @Override
-    public List<Feed> getFeeds() {
-        return List.of();
+    public List<InstagramFeed> getFeeds() {
+        return feeds;
     }
 
     @Override
@@ -73,8 +84,13 @@ public class InstagramProvider extends Provider<InstagramContent, InstagramAutho
     }
 
     @Override
-    public Mono<InstagramAuthor> fetchAuthor(String feedName) {
-        return requestHandler.fetchAuthor(feedName);
+    public Mono<InstagramAuthor> fetchAuthor(String userId) {
+        if (userFeeds.containsKey(userId)) {
+            return userFeeds.get(userId).fetchAuthor();
+        }
+
+        return Mono.empty(); // Can't just fetch any author from Insta per the API. You need the
+        // access token of the user you want to fetch
     }
 
     @Override

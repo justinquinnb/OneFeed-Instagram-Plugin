@@ -30,7 +30,7 @@ public class InstagramContentNormalizer implements
         ofc.setPublished(content.getPublished());
         ofc.setFeedId(content.getFeedId());
         ofc.setExternalRef(content.getExternalRef());
-        ofc.setNextPageCursor(content.getNextPageCursor().get());
+        ofc.setNextPageCursor(content.getNextPageCursor().orElse(null));
 
         ofc.setBody(content.getCaption());
         if (useTotalMetricsForNormalization) {
@@ -45,6 +45,8 @@ public class InstagramContentNormalizer implements
         } else {
             children.add(content.getPrimaryMediaAsChild());
         }
+
+        ofc.setAuthorIds(content.getAuthorIds());
 
         ofc.setAttachments(convertToMedia(content.getExternalRef().url(), children));
 

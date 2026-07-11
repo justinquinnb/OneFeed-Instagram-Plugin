@@ -164,7 +164,6 @@ public class RequestHandler {
             // Complete all the content
             for (InstagramContent content : allContent) {
                 content.setFeedId(feed.getId());
-                content.getAuthorIds().set(0, feed.getAuthorId());
             }
 
             return Flux.fromIterable(allContent);
@@ -232,7 +231,7 @@ public class RequestHandler {
         }
 
         String encodedFields = URLEncoder.encode(
-            "alt_text,media_type,media_url,caption,timestamp,permalink,owner" +
+            "alt_text,media_type,media_url,caption,timestamp,permalink,owner," +
                 "thumbnail_url,children{media_url,media_type,alt_text,thumbnail_url},"
                 + "collaborators{id,invite_status}",
             StandardCharsets.UTF_8);

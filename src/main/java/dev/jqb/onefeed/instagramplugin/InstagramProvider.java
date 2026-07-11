@@ -61,6 +61,11 @@ public class InstagramProvider extends WebhookEnabledProvider<InstagramContent, 
 
     public void init() {
         this.feeds.forEach(InstagramFeed::init);
+
+        for (InstagramFeed feed : this.feeds) {
+            logger.debug("Associated author ID {} with feed ID {}", feed.getAuthorId(), feed.getId());
+            userFeeds.put(feed.getAuthorId(), feed);
+        }
     }
 
     @Override
@@ -85,10 +90,14 @@ public class InstagramProvider extends WebhookEnabledProvider<InstagramContent, 
 
     @Override
     public Mono<InstagramAuthor> fetchAuthor(String userId) {
+        logger.debug("Fetching IG author for user ID {}", userId);
         if (userFeeds.containsKey(userId)) {
+            logger.debug("Requesting IG author '{}' from corresponding feed: {}", userId, userFeeds.get(userId).getId());
             return userFeeds.get(userId).fetchAuthor();
         }
 
+        // TODO make this parse out collaborator IDs and invoke a new request handler method
+        logger.debug("Cannot access IG author with ID '{}'", userId);
         return Mono.empty(); // Can't just fetch any author from Insta per the API. You need the
         // access token of the user you want to fetch
     }

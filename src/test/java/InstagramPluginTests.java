@@ -118,7 +118,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
         InstagramCollaborator collaborator = getSampleIgCollaborator();
         List<String> authors = new ArrayList<>(2);
         authors.add(author.getExternalRef().id());
-        authors.add(collaborator.getExternalRef().id());
+        authors.add("(" + getSampleExternalRef().id() + ")" + collaborator.getExternalRef().id());
 
         // Media attachments (base media + first child)
         List<InstagramContentChild> children = content.getChildren();

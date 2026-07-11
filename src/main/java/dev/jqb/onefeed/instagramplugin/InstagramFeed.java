@@ -3,6 +3,7 @@ package dev.jqb.onefeed.instagramplugin;
 import dev.jqb.onefeed.core.feed.Feed;
 import dev.jqb.onefeed.core.feed.FeedCursor;
 import dev.jqb.onefeed.core.feed.FeedId;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.BasicIgUserInfo;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.content.InstagramContent;
 import dev.jqb.onefeed.instagramplugin.config.AccessToken;
@@ -24,12 +25,23 @@ public class InstagramFeed extends Feed<InstagramContent> {
     private final IgFeedConfig config;
 
     @Getter
-    private String authorId;
+    private BasicIgUserInfo author;
 
     private RequestHandler requestHandler;
 
-    public InstagramFeed(FeedId feedId, IgFeedConfig config, RequestHandler requestHandler) {
-        super(feedId);
+    /**
+     * Creates a new {@code InstagramFeed} with the provided configuration. Must be initialized
+     * using {@link #init()} prior to use.
+     *
+     * @param feedId the ID to assign to the feed
+     * @param url the URL where the feed can be accessed on its source platform
+     * @param config the configuration for the feed
+     * @param requestHandler the request handler to use for making API requests
+     *
+     * @see #using
+     */
+    public InstagramFeed(FeedId feedId, String url, IgFeedConfig config, RequestHandler requestHandler) {
+        super(feedId, url);
         this.config = config;
         this.requestHandler = requestHandler;
     }
@@ -38,7 +50,7 @@ public class InstagramFeed extends Feed<InstagramContent> {
      * Creates a new {@code InstagramFeed} with the provided configuration and initializes it
      */
     public static InstagramFeed using(FeedId feedId, IgFeedConfig config, RequestHandler requestHandler) {
-        InstagramFeed feed = new InstagramFeed(feedId, config, requestHandler);
+        InstagramFeed feed = new InstagramFeed(feedId, null, config, requestHandler);
         feed.init();
         return feed;
     }
@@ -58,7 +70,8 @@ public class InstagramFeed extends Feed<InstagramContent> {
         }
 
         // Retrieve the author of the feed
-        this.authorId = requestHandler.fetchInstaUserId(this);
+        this.author = requestHandler.fetchInstaUserInfo(this);
+        this.url = "https://instagram.com/" + this.author.getUsername();
     }
 
     @Override
@@ -83,5 +96,20 @@ public class InstagramFeed extends Feed<InstagramContent> {
      */
     public void refreshAccessToken() {
         requestHandler.refreshAccessToken(this);
+    }
+
+    @Override
+    public String getRssChannelTitle() {
+        return "";
+    }
+
+    @Override
+    public String getRssChannelLink() {
+        return "";
+    }
+
+    @Override
+    public String getRssChannelDescription() {
+        return "";
     }
 }

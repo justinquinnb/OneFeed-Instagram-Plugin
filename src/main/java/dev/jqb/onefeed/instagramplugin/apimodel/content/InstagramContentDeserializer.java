@@ -59,7 +59,7 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
 
         InstagramContent content = new InstagramContent(
             null, externalRef, null, published, authorId, collaborators);
-        // FeedID will be set later by the request handler. Can't be set here bc it's a record class
+        // Source will be set later by the request handler. Can't be set here bc it's a record class
 
         // Never null
         content.setMediaType(MediaType.valueOf(root.get("media_type").asString()));

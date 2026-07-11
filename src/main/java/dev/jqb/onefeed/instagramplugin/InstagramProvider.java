@@ -50,7 +50,7 @@ public class InstagramProvider extends WebhookEnabledProvider<InstagramContent, 
         this.requestHandler = requestHandler;
         config.getIgFeedConfigs().forEach((feedName, feedConfig) -> {
             FeedId feedId = new FeedId(id, feedName);
-            this.feeds.add(new InstagramFeed(feedId, feedConfig, requestHandler));
+            this.feeds.add(new InstagramFeed(feedId, null, feedConfig, requestHandler));
         });
 
         this.contentNormalizer = new InstagramContentNormalizer(
@@ -63,8 +63,8 @@ public class InstagramProvider extends WebhookEnabledProvider<InstagramContent, 
         this.feeds.forEach(InstagramFeed::init);
 
         for (InstagramFeed feed : this.feeds) {
-            logger.debug("Associated author ID {} with feed ID {}", feed.getAuthorId(), feed.getId());
-            userFeeds.put(feed.getAuthorId(), feed);
+            logger.debug("Associated author ID {} with feed ID {}", feed.getAuthor().getId(), feed.getId());
+            userFeeds.put(feed.getAuthor().getId(), feed);
         }
     }
 

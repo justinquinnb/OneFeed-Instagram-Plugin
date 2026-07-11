@@ -1,7 +1,9 @@
 package dev.jqb.onefeed.instagramplugin;
 
+import dev.jqb.onefeed.core.feed.FeedAttribution;
 import dev.jqb.onefeed.core.feed.FeedCursor;
 import dev.jqb.onefeed.core.feed.FeedId;
+import dev.jqb.onefeed.instagramplugin.apimodel.author.BasicIgUserInfo;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorDeserializer;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramCollaborator;
@@ -163,7 +165,7 @@ public class RequestHandler {
 
             // Complete all the content
             for (InstagramContent content : allContent) {
-                content.setFeedId(feed.getId());
+                content.setSource(feed.getAttribution());
             }
 
             return Flux.fromIterable(allContent);
@@ -254,7 +256,7 @@ public class RequestHandler {
 
         return URI.create(String.format(
                 "%s/%s/media?access_token=%s&limit=%s%s&fields=%s",
-                baseUrl, feed.getAuthorId(), accessToken.getValue(),
+                baseUrl, feed.getAuthor().getId(), accessToken.getValue(),
                 Math.min(amount, 10), afterArg, encodedFields
             )
         );
@@ -271,7 +273,7 @@ public class RequestHandler {
         // Possible because the endpoint for Insta login is just "me", else it's the specific ID,
         // where both paths have the same args
         String userId = (feedConfig.getLoginType() == LoginType.FACEBOOK)
-            ? feed.getAuthorId()
+            ? feed.getAuthor().getId()
             : "me";
 
         String fields = "id,name,username,profile_picture_url";
@@ -310,19 +312,21 @@ public class RequestHandler {
      *
      * @return the Instagram User ID of the given {@code feed}'s author
      */
-    public String fetchInstaUserId(InstagramFeed feed) {
+    public BasicIgUserInfo fetchInstaUserInfo(InstagramFeed feed) {
         IgFeedConfig feedConfig = feed.getConfig();
 
         // Get the correct URI based on the login type
         URI uri;
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
             logger.debug("Fetching Instagram User ID from Facebook Login for Business feed: {}", feed.getId());
-            uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=instagram_business_account",
-                getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
+            String encodedFields = URLEncoder.encode("instagram_business_account{username}",
+                StandardCharsets.UTF_8);
+            uri = URI.create(String.format("%s/me/accounts?access_token=%s&fields=%s",
+                getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue(), encodedFields));
 
         } else { // Insta login
             logger.debug("Fetching Instagram User ID from Business Login for Instagram feed: {}", feed.getId());
-            uri = URI.create(String.format("%s/me?access_token=%s",
+            uri = URI.create(String.format("%s/me?access_token=%s&fields=id,username",
                 getBaseUrl(feedConfig.getLoginType()), feedConfig.getAccessToken().getValue()));
         }
 
@@ -342,11 +346,17 @@ public class RequestHandler {
 
         // Parse the response based on the login type
         JsonNode root = mapper.readTree(responseBody);
+        String id;
+        String username;
         if (feedConfig.getLoginType() == LoginType.FACEBOOK) {
-            return root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
+            id = root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
+            username = root.get("data").asArray().get(0).get("instagram_business_account").get("username").asString();
         } else { // Insta login
-            return root.get("id").asString();
+            id = root.get("data").asArray().get(0).get("instagram_business_account").get("id").asString();
+            username = root.get("data").asArray().get(0).get("instagram_business_account").get("username").asString();
         }
+
+        return new BasicIgUserInfo(id, username);
     }
 
     /**

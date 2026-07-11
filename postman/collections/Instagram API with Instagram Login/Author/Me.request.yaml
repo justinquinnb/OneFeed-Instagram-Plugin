@@ -1,7 +1,14 @@
 $kind: http-request
 name: Me
-url: https://graph.instagram.com/me?access_token={{ig_access_token}}
+url: https://graph.instagram.com/me?access_token={{ig_access_token}}&fields=id,username
 method: GET
 queryParams:
-  access_token: "{{ig_access_token}}"
+  - key: access_token
+    value: "{{ig_access_token}}"
+    disabled: false
+    description: ""
+  - key: fields
+    value: id,username
+    disabled: false
+    description: ""
 order: 1778796936387

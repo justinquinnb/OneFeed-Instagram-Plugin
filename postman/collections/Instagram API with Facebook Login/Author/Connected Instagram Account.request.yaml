@@ -1,9 +1,10 @@
 $kind: http-request
-url: https://graph.facebook.com/me/accounts?access_token={{fb_access_token}}&fields=instagram_business_account
+name: Connected Instagram Account
+url: https://graph.facebook.com/me/accounts?access_token={{fb_access_token}}&fields=instagram_business_account{username}
 method: GET
 queryParams:
   access_token: "{{fb_access_token}}"
-  fields: instagram_business_account
+  fields: instagram_business_account{username}
 scripts:
   - type: afterResponse
     code: "// Parse the JSON response\r

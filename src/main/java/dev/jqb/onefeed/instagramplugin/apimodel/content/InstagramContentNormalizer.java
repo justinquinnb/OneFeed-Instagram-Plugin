@@ -28,7 +28,7 @@ public class InstagramContentNormalizer implements
         OneFeedContent ofc = new OneFeedContent();
 
         ofc.setPublished(content.getPublished());
-        ofc.setFeedId(content.getFeedId());
+        ofc.setSource(content.getSource());
         ofc.setExternalRef(content.getExternalRef());
         ofc.setNextPageCursor(content.getNextPageCursor().orElse(null));
 

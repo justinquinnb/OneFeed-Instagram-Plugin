@@ -3,6 +3,7 @@ import dev.jqb.onefeed.core.actor.OneFeedActor;
 import dev.jqb.onefeed.core.content.OneFeedAttachment;
 import dev.jqb.onefeed.core.content.OneFeedContent;
 import dev.jqb.onefeed.core.content.OneFeedMedia;
+import dev.jqb.onefeed.core.feed.FeedAttribution;
 import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.core.platform.ExternalRef;
 import dev.jqb.onefeed.core.provider.ProviderConfig;
@@ -92,7 +93,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
 
         // Content itself
         InstagramContent content = new InstagramContent(
-            getSampleFeedId(),
+            getSampleFeedAttribution(),
             getSampleExternalRef(),
             "testCursor123",
             Instant.ofEpochMilli(1234567890L),
@@ -138,7 +139,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
 
         // Content itself
         return OneFeedContent.builder(
-            content.getFeedId(), content.getExternalRef(), content.getPublished(), authors
+            content.getSource(), content.getExternalRef(), content.getPublished(), authors
         ).attachments(attachments)
             .nextPageCursor(content.getNextPageCursor().orElse(null))
             .body(content.getCaption())
@@ -180,6 +181,14 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
      */
     private static FeedId getSampleFeedId() {
         return new FeedId(getSampleProviderId(), "test-feed-name");
+    }
+
+    /**
+     * Gets a sample feed attribution for testing
+     * @return a sample {@link FeedAttribution} object for testing
+     */
+    private static FeedAttribution getSampleFeedAttribution() {
+        return new FeedAttribution(getSampleFeedId(), "https://www.instagram.com/instagram");
     }
 
     /**

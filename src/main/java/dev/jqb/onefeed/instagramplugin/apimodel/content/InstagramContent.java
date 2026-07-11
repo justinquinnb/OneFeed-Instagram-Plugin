@@ -2,6 +2,7 @@ package dev.jqb.onefeed.instagramplugin.apimodel.content;
 
 import dev.jqb.onefeed.core.actor.Actor;
 import dev.jqb.onefeed.core.content.Content;
+import dev.jqb.onefeed.core.feed.FeedAttribution;
 import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.core.platform.ExternalRef;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
@@ -58,7 +59,7 @@ public class InstagramContent extends Content {
     private List<InstagramCollaborator> collaborators;
 
     public InstagramContent(
-        FeedId feedId,
+        FeedAttribution source,
         ExternalRef externalRef,
         @Nullable String nextPageCursor,
         Instant published,
@@ -73,7 +74,7 @@ public class InstagramContent extends Content {
         String collabPostIdPrefix = String.format("(%s)", externalRef.id());
         authors.addAll(
             collaborators.stream().map(c -> collabPostIdPrefix + c.getExternalRef().id()).toList());
-        super(feedId, externalRef, nextPageCursor, published, authors);
+        super(source, externalRef, nextPageCursor, published, authors);
     }
 
     /**

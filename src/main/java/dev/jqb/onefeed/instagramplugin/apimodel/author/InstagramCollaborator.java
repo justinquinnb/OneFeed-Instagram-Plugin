@@ -2,7 +2,6 @@ package dev.jqb.onefeed.instagramplugin.apimodel.author;
 
 import dev.jqb.onefeed.core.actor.Actor;
 import dev.jqb.onefeed.core.platform.ExternalRef;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

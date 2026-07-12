@@ -97,19 +97,4 @@ public class InstagramFeed extends Feed<InstagramContent> {
     public void refreshAccessToken() {
         requestHandler.refreshAccessToken(this);
     }
-
-    @Override
-    public String getRssChannelTitle() {
-        return "";
-    }
-
-    @Override
-    public String getRssChannelLink() {
-        return "";
-    }
-
-    @Override
-    public String getRssChannelDescription() {
-        return "";
-    }
 }

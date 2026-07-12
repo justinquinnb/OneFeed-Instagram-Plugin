@@ -1,8 +1,6 @@
 package dev.jqb.onefeed.instagramplugin;
 
-import dev.jqb.onefeed.core.feed.FeedAttribution;
 import dev.jqb.onefeed.core.feed.FeedCursor;
-import dev.jqb.onefeed.core.feed.FeedId;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.BasicIgUserInfo;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthor;
 import dev.jqb.onefeed.instagramplugin.apimodel.author.InstagramAuthorDeserializer;

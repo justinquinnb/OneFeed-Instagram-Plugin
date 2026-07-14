@@ -141,7 +141,7 @@ public class InstagramPluginTests extends ProviderPluginTests<InstagramPlugin> {
         return OneFeedContent.builder(
             content.getSource(), content.getExternalRef(), content.getPublished(), authors
         ).attachments(attachments)
-            .nextPageCursor(content.getNextPageCursor())
+            .nextPageCursor(content.getNextPageCursor().orElse(null))
             .body(content.getCaption())
             .primaryReactionCount(content.getTotalLikeCount())
             .build();

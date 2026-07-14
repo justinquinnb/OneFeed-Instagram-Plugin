@@ -41,7 +41,7 @@ public class InstagramContentDeserializer extends StdDeserializer<InstagramConte
         }
 
         // The provider sets the cursor and feed name later...
-        ExternalRef externalRef = new ExternalRef(idOnPlatform, url);
+        ExternalRef externalRef = new ExternalRef(url, idOnPlatform);
 
         // Null if the post is just a single piece of media
         List<InstagramCollaborator> collaborators = null;

@@ -30,7 +30,7 @@ public class InstagramContentNormalizer implements
         ofc.setPublished(content.getPublished());
         ofc.setSource(content.getSource());
         ofc.setExternalRef(content.getExternalRef());
-        ofc.setNextPageCursor(content.getNextPageCursor().orElse(null));
+        ofc.setNextPageCursor(content.getNextPageCursor());
 
         ofc.setBody(content.getCaption());
         if (useTotalMetricsForNormalization) {
